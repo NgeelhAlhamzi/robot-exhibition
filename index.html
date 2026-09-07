@@ -205,7 +205,7 @@
         }
         .xo-cell:hover, .xo-cell.hovered { background: rgba(0, 243, 255, 0.25); border-color: var(--gold); }
 
-        /* لعبة تفكيك الرموز الجديدة */
+        /* لعبة تفكيك الرموز */
         .code-display {
             font-size: 42px; font-weight: bold; color: var(--gold);
             letter-spacing: 12px; margin: 20px 0; background: rgba(0,0,0,0.5);
@@ -319,26 +319,28 @@
         robotRenderer.setSize(window.innerWidth, window.innerHeight);
         robotContainer.appendChild(robotRenderer.domElement);
 
-        robotScene.add(new THREE.AmbientLight(0xffffff, 1.2));
-        const pLight = new THREE.PointLight(0x00f3ff, 4, 20); pLight.position.set(3, 5, 5); robotScene.add(pLight);
+        robotScene.add(new THREE.AmbientLight(0xffffff, 1.5));
+        const pLight = new THREE.PointLight(0x00f3ff, 3, 20); pLight.position.set(0, 5, 5); robotScene.add(pLight);
 
         const loader = new THREE.GLTFLoader();
         let samRobot = null;
         let mixer = null;
         const clock = new THREE.Clock();
 
-        // إبعاد الكاميرا لرؤية الجسم بالكامل
-        robotCamera.position.set(0, 0, 7.5);
+        // إبعاد الكاميرا لرؤية الجسم بالكامل بحجم واضح
+        robotCamera.position.set(0, 0, 10);
 
         loader.load('./marin.glb', function (gltf) {
             samRobot = gltf.scene;
             
-            // ضبط الحجم ليظهر كاملاً بشكل متناسق
-            samRobot.scale.set(0.9, 0.9, 0.9);
-            samRobot.position.set(0, -2.2, 0);
+            // تصغير مقياس الروبوت ليظهر متناسقاً بدلاً من الحجم الضخم
+            samRobot.scale.set(0.35, 0.35, 0.35);
+            
+            // ضبط موضعه في المنتصف مع إظهاره بالكامل
+            samRobot.position.set(0, -1.8, 0);
 
-            // تدوير الموديل 180 درجة لمواجهة الشاشة
-            samRobot.rotation.y = Math.PI;
+            // توجيه الروبوت للأمام نحو الشاشة تلقائياً
+            samRobot.rotation.y = 0;
 
             if (gltf.animations && gltf.animations.length > 0) {
                 mixer = new THREE.AnimationMixer(samRobot);
@@ -356,10 +358,10 @@
             const delta = clock.getDelta();
             if (mixer) mixer.update(delta);
             if (samRobot) {
-                samRobot.position.y = -2.2 + Math.sin(Date.now() * 0.0015) * 0.06;
-                // حركة بسيطة للتفاعل مع التأشير
-                const targetRotY = Math.PI + ((lastPointerX / window.innerWidth) - 0.5) * 0.4;
-                samRobot.rotation.y += (targetRotY - samRobot.rotation.y) * 0.03;
+                // حركات خفيفة للطفو والتفاعل مع حركة المؤشر
+                samRobot.position.y = -1.8 + Math.sin(Date.now() * 0.0015) * 0.08;
+                const targetRotY = ((lastPointerX / window.innerWidth) - 0.5) * 0.3;
+                samRobot.rotation.y += (targetRotY - samRobot.rotation.y) * 0.05;
             }
             robotRenderer.render(robotScene, robotCamera);
         }
@@ -865,7 +867,7 @@
             }, 1500);
         }
 
-        // --- 6. اللعبة الجديدة البديلة: فك الرمز الأمني ---
+        // --- 6. فك الرمز الأمني ---
         let secretCode = "";
         let userEnteredCode = "";
 
