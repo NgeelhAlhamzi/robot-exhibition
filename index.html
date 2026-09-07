@@ -56,7 +56,7 @@
         #robot-container {
             position: absolute; top: 0; left: 0;
             width: 100vw; height: 100vh; z-index: 2;
-            pointer-events: none; transition: all 0.8s ease;
+            pointer-events: none; transition: opacity 0.5s ease;
         }
 
         #top-bar {
@@ -197,14 +197,6 @@
         }
         .falling-item { position: absolute; font-size: 50px; z-index: 6; filter: drop-shadow(0 0 20px var(--gold)); }
 
-        .space-target {
-            position: absolute; width: 110px; height: 110px; border-radius: 50%;
-            background: radial-gradient(circle, var(--gold) 0%, rgba(245, 158, 11, 0.1) 80%);
-            border: 3px solid #fff; box-shadow: 0 0 40px var(--gold);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 48px; cursor: pointer; transition: transform 0.2s;
-        }
-
         .xo-board { display: grid; grid-template-columns: repeat(3, 130px); gap: 15px; }
         .xo-cell {
             width: 130px; height: 130px; border-radius: 20px; border: 2px solid var(--cyan);
@@ -212,6 +204,24 @@
             background: rgba(255, 255, 255, 0.05); cursor: pointer;
         }
         .xo-cell:hover, .xo-cell.hovered { background: rgba(0, 243, 255, 0.25); border-color: var(--gold); }
+
+        /* لعبة تفكيك الرموز الجديدة */
+        .code-display {
+            font-size: 42px; font-weight: bold; color: var(--gold);
+            letter-spacing: 12px; margin: 20px 0; background: rgba(0,0,0,0.5);
+            padding: 15px 40px; border-radius: 15px; border: 2px solid var(--gold);
+            box-shadow: 0 0 25px var(--gold);
+        }
+        .keypad-grid {
+            display: grid; grid-template-columns: repeat(3, 90px); gap: 15px; margin-top: 15px;
+        }
+        .key-btn {
+            width: 90px; height: 90px; border-radius: 18px; border: 2px solid var(--cyan);
+            background: rgba(255,255,255,0.08); font-size: 32px; font-weight: bold;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.2s; color: #fff;
+        }
+        .key-btn:hover, .key-btn.hovered { background: var(--cyan); color: #000; transform: scale(1.1); }
     </style>
 </head>
 <body>
@@ -272,9 +282,9 @@
             <div class="card-icon"><i class="fa-solid fa-gem"></i></div>
             <span>صيد الجواهر</span>
         </div>
-        <div class="game-card" data-id="space" onclick="selectGame('space')">
-            <div class="card-icon"><i class="fa-solid fa-rocket"></i></div>
-            <span>تحدي الأشكال</span>
+        <div class="game-card" data-id="code_breaker" onclick="selectGame('code_breaker')">
+            <div class="card-icon"><i class="fa-solid fa-key"></i></div>
+            <span>فك الرمز الأمني</span>
         </div>
     </div>
 
@@ -317,11 +327,18 @@
         let mixer = null;
         const clock = new THREE.Clock();
 
-        // ** تم تعديل التحميل لتلافي خطأ التشغيل **
+        // إبعاد الكاميرا لرؤية الجسم بالكامل
+        robotCamera.position.set(0, 0, 7.5);
+
         loader.load('./marin.glb', function (gltf) {
             samRobot = gltf.scene;
-            samRobot.scale.set(1.6, 1.6, 1.6);
-            samRobot.position.set(0, -1.2, 0);
+            
+            // ضبط الحجم ليظهر كاملاً بشكل متناسق
+            samRobot.scale.set(0.9, 0.9, 0.9);
+            samRobot.position.set(0, -2.2, 0);
+
+            // تدوير الموديل 180 درجة لمواجهة الشاشة
+            samRobot.rotation.y = Math.PI;
 
             if (gltf.animations && gltf.animations.length > 0) {
                 mixer = new THREE.AnimationMixer(samRobot);
@@ -334,15 +351,14 @@
             console.error("خطأ في تحميل ملف الروبوت marin.glb:", error); 
         });
 
-        robotCamera.position.z = 4.5;
-
         function animate() {
             requestAnimationFrame(animate);
             const delta = clock.getDelta();
             if (mixer) mixer.update(delta);
             if (samRobot) {
-                samRobot.position.y = -1.2 + Math.sin(Date.now() * 0.0015) * 0.06;
-                const targetRotY = ((lastPointerX / window.innerWidth) - 0.5) * 0.6;
+                samRobot.position.y = -2.2 + Math.sin(Date.now() * 0.0015) * 0.06;
+                // حركة بسيطة للتفاعل مع التأشير
+                const targetRotY = Math.PI + ((lastPointerX / window.innerWidth) - 0.5) * 0.4;
                 samRobot.rotation.y += (targetRotY - samRobot.rotation.y) * 0.03;
             }
             robotRenderer.render(robotScene, robotCamera);
@@ -359,7 +375,6 @@
             }
         }
 
-        // القارئ الصوتي للروبوت
         function speak(text, callback) {
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
@@ -372,7 +387,6 @@
             } else if (callback) callback();
         }
 
-        // الروبوت يشرح بالصوت مباشرة مع حركة التفاعل
         function runRobotSpeechSequence() {
             const robotSpeechParts = [
                 "أهلاً وسهلاً بك في المعرض التفاعلي الذكي. أنا الروبوت مارين، مرشدك اليوم.",
@@ -501,7 +515,7 @@
         function clearHover() {
             if (hoverTimer) clearTimeout(hoverTimer);
             handPointer.classList.remove('loading');
-            document.querySelectorAll('.game-card, .option-btn, .memory-card, .space-target, .xo-cell, .word-btn, .top-btn').forEach(c => c.classList.remove('hovered'));
+            document.querySelectorAll('.game-card, .option-btn, .memory-card, .xo-cell, .word-btn, .top-btn, .key-btn').forEach(c => c.classList.remove('hovered'));
             currentHoveredElement = null;
         }
 
@@ -514,12 +528,15 @@
             visitorCanvas.style.display = 'block';
             gameStage.style.display = 'flex';
 
+            // إخفاء الروبوت أثناء اللعب
+            robotContainer.style.opacity = '0';
+
             if (id === 'quiz_general') startGeneralQuiz();
             else if (id === 'proverbs') startProverbsGame();
             else if (id === 'memory') startMemoryGame();
             else if (id === 'xo') startXOGame();
             else if (id === 'catcher') startCatcherGame();
-            else if (id === 'space') startSpaceGame();
+            else if (id === 'code_breaker') startCodeBreakerGame();
         }
 
         // --- 1. معلومات عامة ---
@@ -848,38 +865,54 @@
             }, 1500);
         }
 
-        // --- 6. تحدي الأشكال ---
-        function startSpaceGame() {
-            gameStage.innerHTML = '';
-            spawnSpaceTarget();
+        // --- 6. اللعبة الجديدة البديلة: فك الرمز الأمني ---
+        let secretCode = "";
+        let userEnteredCode = "";
+
+        function startCodeBreakerGame() {
+            secretCode = Math.floor(1000 + Math.random() * 9000).toString();
+            userEnteredCode = "";
+            renderCodeBreaker();
+            speak("قم بإدخال الرمز السري المكون من أربعة أرقام");
         }
 
-        function spawnSpaceTarget() {
-            if (currentGame !== 'space') return;
-            const existing = document.querySelector('.space-target');
-            if (existing) existing.remove();
+        function renderCodeBreaker() {
+            gameStage.innerHTML = `
+                <h2 style="color:var(--cyan); margin-bottom:10px;">🔐 تحدي اختراق الرمز السري</h2>
+                <p style="font-size:20px; color:#ccc;">الرمز المطلوب أدناه:</p>
+                <div class="code-display">${secretCode}</div>
+                <div style="font-size:28px; margin-bottom:15px; color:var(--green); letter-spacing:8px; min-height:40px;">
+                    ${userEnteredCode.padEnd(4, '_')}
+                </div>
+                <div class="keypad-grid">
+                    ${[1,2,3,4,5,6,7,8,9].map(num => `<div class="key-btn" data-key="${num}" onclick="handleKeypadClick('${num}')">${num}</div>`).join('')}
+                </div>
+            `;
+        }
 
-            const target = document.createElement('div');
-            target.className = 'space-target';
-            target.innerHTML = ['🚀', '🛸', '👾', '☄️', '🌌'][Math.floor(Math.random() * 5)];
-            target.style.left = `${Math.random() * (window.innerWidth - 220) + 110}px`;
-            target.style.top = `${Math.random() * (window.innerHeight - 280) + 140}px`;
-            target.onclick = () => {
-                if (isProcessingAction) return;
+        function handleKeypadClick(num) {
+            if (isProcessingAction || userEnteredCode.length >= 4) return;
+            userEnteredCode += num;
+            renderCodeBreaker();
+
+            if (userEnteredCode.length === 4) {
                 isProcessingAction = true;
-                globalScore += 5;
-                scoreDisplay.innerText = globalScore;
-                target.style.transform = "scale(1.4)";
-                setTimeout(() => {
-                    spawnSpaceTarget();
-                    isProcessingAction = false;
-                }, 500);
-
-                if (globalScore >= 35) {
-                    showFinalModal("بطل الفضاء!", "دمّرت الأشكال الفضائية وحققت النتيجة المطلوب!");
+                if (userEnteredCode === secretCode) {
+                    globalScore += 25;
+                    scoreDisplay.innerText = globalScore;
+                    speak("تم اختراق النظام بنجاح!", () => {
+                        showFinalModal("عبقري التشفير!", "نجحت في إدخال الرقم السري واختراق النظام!");
+                        isProcessingAction = false;
+                    });
+                } else {
+                    speak("رمز خاطئ، حاول مجدداً");
+                    setTimeout(() => {
+                        userEnteredCode = "";
+                        renderCodeBreaker();
+                        isProcessingAction = false;
+                    }, 1200);
                 }
-            };
-            gameStage.appendChild(target);
+            }
         }
 
         function checkGameInteractions(x, y) {
@@ -888,14 +921,25 @@
             if (currentGame === 'catcher') {
                 const basket = document.getElementById('catcher-basket');
                 if (basket) basket.style.left = `${x}px`;
-            } else if (currentGame === 'space') {
-                const target = document.querySelector('.space-target');
-                if (target) {
-                    const rect = target.getBoundingClientRect();
+            } else if (currentGame === 'code_breaker') {
+                const keys = document.querySelectorAll('.key-btn');
+                keys.forEach(key => {
+                    const rect = key.getBoundingClientRect();
                     if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
-                        target.click();
+                        if (currentHoveredElement !== key) {
+                            clearHover();
+                            currentHoveredElement = key;
+                            key.classList.add('hovered');
+                            handPointer.classList.add('loading');
+
+                            hoverTimer = setTimeout(() => {
+                                const keyValue = key.getAttribute('data-key');
+                                handleKeypadClick(keyValue);
+                                clearHover();
+                            }, HOVER_DELAY);
+                        }
                     }
-                }
+                });
             } else if (currentGame === 'quiz_general') {
                 const options = document.querySelectorAll('.option-btn');
                 options.forEach(opt => {
@@ -994,13 +1038,14 @@
             resultModal.classList.remove('show');
             gameStage.style.display = 'none';
             visitorCanvas.style.display = 'none';
+
+            // إظهار الروبوت مجدداً في القائمة الرئيسية
             robotContainer.style.opacity = '1';
 
             menuZones.classList.remove('show');
             clearHover();
         }
 
-        // ** تم تحديث تشغيل الكاميرا للتوافق مع شروط المتصفحات **
         const camera = new Camera(videoElement, {
             onFrame: async () => { 
                 await hands.send({ image: videoElement });
