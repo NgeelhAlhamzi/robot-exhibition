@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة المعارض التفاعلية - الروبوت مارين</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <!-- Three.js & Loaders -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    
+    <!-- MediaPipe Hands & Selfie Segmentation -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js" crossorigin="anonymous"></script>
+
+    <style>
+        :root {
+            --gold: #f59e0b;
+            --cyan: #00f3ff;
+            --red: #ef4444;
+            --green: #10b981;
+            --purple: #8b5cf6;
+            --bg-dark: #030712;
+            --glass-bg: rgba(3, 7, 18, 0.92);
+            --glass-border: rgba(0, 243, 255, 0.4);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; user-select: none; }
+        
+        body { 
+            background-color: var(--bg-dark); 
+            color: #fff; width: 100vw; height: 100vh; 
+            overflow: hidden; position: relative; 
+        }
+
+        video#webcam { display: none; }
+
+        #visitor-canvas {
+            position: absolute; bottom: 15px; left: 20px;
+            width: 220px; height: 320px; z-index: 10;
+            pointer-events: none; display: none;
+            transform: scaleX(-1); object-fit: contain;
+            background: transparent !important; border: none !important;
+            filter: drop-shadow(0 5px 15px rgba(0,0,0,0.7));
+        }
+
+        #robot-container {
+            position: absolute; top: 0; left: 0;
+            width: 100vw; height: 100vh; z-index: 2;
+            pointer-events: none; transition: all 0.8s ease;
+        }
+
+        #top-bar {
+            position: absolute; top: 20px; width: 100%;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 40px; z-index: 100; pointer-events: auto;
+        }
+
+        .top-btn {
+            background: rgba(3, 7, 18, 0.85); border: 2px solid var(--cyan);
+            border-radius: 20px; padding: 10px 20px; display: flex;
+            align-items: center; gap: 10px; backdrop-filter: blur(15px);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2); cursor: pointer;
+            transition: all 0.3s ease; font-size: 16px; font-weight: bold; color: #fff;
+        }
+
+        .top-btn:hover, .top-btn.hovered {
+            background: var(--cyan); color: #000;
+            box-shadow: 0 0 30px var(--cyan); transform: scale(1.05);
+        }
+
+        #menu-zones {
+            position: absolute; top: 55%; left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; z-index: 20; padding: 30px;
+            background: var(--glass-bg); border: 2px solid var(--glass-border);
+            border-radius: 30px; backdrop-filter: blur(25px);
+            box-shadow: 0 0 50px rgba(0, 243, 255, 0.35); max-width: 90vw;
+            transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            opacity: 0; pointer-events: none;
+        }
+        
+        #menu-zones.show { 
+            transform: translate(-50%, -50%) scale(1); opacity: 1; pointer-events: auto;
+        }
+
+        .game-card {
+            width: 190px; height: 160px; border-radius: 20px;
+            position: relative; overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.2); cursor: pointer;
+            transition: all 0.4s ease;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .game-card .card-icon {
+            font-size: 40px; text-align: center; color: var(--cyan); margin-bottom: 10px;
+            text-shadow: 0 0 15px var(--cyan);
+        }
+
+        .game-card span { font-size: 17px; font-weight: 900; color: #fff; text-shadow: 0 3px 10px #000; }
+
+        .game-card:hover, .game-card.hovered {
+            transform: translateY(-8px) scale(1.05) !important;
+            border-color: var(--cyan) !important;
+            box-shadow: 0 12px 30px rgba(0, 243, 255, 0.5) !important;
+            background: rgba(0, 243, 255, 0.15);
+        }
+
+        #hand-pointer {
+            position: absolute; width: 42px; height: 42px; border: 3px solid var(--cyan);
+            border-radius: 50%; background: rgba(0, 243, 255, 0.3);
+            box-shadow: 0 0 25px var(--cyan); transform: translate(-50%, -50%);
+            z-index: 999; pointer-events: none; display: none;
+            transition: transform 0.1s ease-out;
+        }
+
+        #hand-pointer.loading::after {
+            content: ''; position: absolute; top: -5px; left: -5px; right: -5px; bottom: -5px;
+            border: 3px solid transparent; border-top-color: var(--gold); border-radius: 50%;
+            opacity: 1; animation: spin 1.8s linear infinite;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        #game-stage {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 5; display: none; flex-direction: column; align-items: center; justify-content: center;
+            padding: 20px;
+            background-image: radial-gradient(circle at center, rgba(0, 243, 255, 0.15) 0%, rgba(3, 7, 18, 0.92) 100%);
+            backdrop-filter: blur(8px);
+        }
+
+        #result-modal {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.7);
+            background: var(--glass-bg); border: 3px solid var(--gold); border-radius: 30px;
+            padding: 40px; text-align: center; z-index: 200; display: none; flex-direction: column;
+            align-items: center; gap: 20px; box-shadow: 0 0 60px var(--gold); opacity: 0;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); pointer-events: auto;
+        }
+        #result-modal.show { transform: translate(-50%, -50%) scale(1); opacity: 1; display: flex; }
+        #result-modal h1 { font-size: 36px; color: var(--gold); }
+        #result-modal p { font-size: 24px; color: #fff; }
+
+        .question-box {
+            background: var(--glass-bg); border: 2px solid var(--cyan);
+            border-radius: 20px; padding: 30px 40px; text-align: center;
+            margin-bottom: 25px; max-width: 800px; width: 100%;
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.2); position: relative;
+        }
+        
+        .timer-delay-bar {
+            margin-top: 15px; font-size: 18px; color: var(--gold); font-weight: bold; display: none;
+        }
+
+        .options-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; width: 100%; max-width: 800px; }
+        .option-btn {
+            background: rgba(255, 255, 255, 0.08); border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 18px; padding: 20px; font-size: 20px; font-weight: bold;
+            text-align: center; cursor: pointer; transition: all 0.3s; color: #fff;
+        }
+        .option-btn:hover, .option-btn.hovered { border-color: var(--cyan); background: rgba(0, 243, 255, 0.25); transform: scale(1.03); }
+        .option-btn.correct { background: var(--green) !important; border-color: #fff !important; }
+        .option-btn.wrong { background: var(--red) !important; border-color: #fff !important; }
+
+        .words-container { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; max-width: 850px; margin-top: 25px; }
+        .word-btn {
+            background: rgba(139, 92, 246, 0.2); border: 2px solid var(--purple);
+            padding: 15px 30px; border-radius: 15px; font-size: 22px; font-weight: bold;
+            cursor: pointer; transition: all 0.3s; color: #fff;
+        }
+        .word-btn:hover, .word-btn.hovered { transform: scale(1.1); border-color: var(--cyan); }
+
+        .memory-grid { display: grid; grid-template-columns: repeat(4, 120px); gap: 15px; }
+        .memory-card {
+            width: 120px; height: 120px; border-radius: 20px; border: 2px solid var(--cyan);
+            background: rgba(255, 255, 255, 0.08); font-size: 45px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: transform 0.4s;
+        }
+        .memory-card.flipped { background: var(--cyan); color: #000; transform: rotateY(180deg); }
+
+        #catcher-basket {
+            position: absolute; bottom: 40px; width: 180px; height: 50px;
+            background: linear-gradient(90deg, #00f3ff, #8b5cf6); border-radius: 30px;
+            box-shadow: 0 0 30px var(--cyan); transform: translateX(-50%);
+            border: 3px solid #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px;
+        }
+        .falling-item { position: absolute; font-size: 50px; z-index: 6; filter: drop-shadow(0 0 20px var(--gold)); }
+
+        .space-target {
+            position: absolute; width: 110px; height: 110px; border-radius: 50%;
+            background: radial-gradient(circle, var(--gold) 0%, rgba(245, 158, 11, 0.1) 80%);
+            border: 3px solid #fff; box-shadow: 0 0 40px var(--gold);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 48px; cursor: pointer; transition: transform 0.2s;
+        }
+
+        .xo-board { display: grid; grid-template-columns: repeat(3, 130px); gap: 15px; }
+        .xo-cell {
+            width: 130px; height: 130px; border-radius: 20px; border: 2px solid var(--cyan);
+            font-size: 55px; font-weight: 900; display: flex; align-items: center; justify-content: center;
+            background: rgba(255, 255, 255, 0.05); cursor: pointer;
+        }
+        .xo-cell:hover, .xo-cell.hovered { background: rgba(0, 243, 255, 0.25); border-color: var(--gold); }
+    </style>
+</head>
+<body>
+
+    <audio id="bg-music" loop preload="auto">
+        <source src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=ambient-soft-piano-11382.mp3" type="audio/mpeg">
+    </audio>
+
+    <video id="webcam" autoplay playsinline></video>
+    <canvas id="visitor-canvas"></canvas>
+    <div id="hand-pointer"></div>
+
+    <!-- نافذة النتيجة -->
+    <div id="result-modal">
+        <h1 id="result-title">تهانينا! 🎉</h1>
+        <p id="result-desc">لقد أنهيت التحدي بنجاح!</p>
+        <p style="color:var(--cyan); font-weight:bold;">النقاط الإجمالية: <span id="final-score">0</span></p>
+        <div class="top-btn result-home-btn" id="modal-home-btn" onclick="resetToMenu()">
+            <i class="fa-solid fa-house"></i> العودة للقائمة الرئيسية
+        </div>
+    </div>
+
+    <!-- شريط الأدوات العلوي -->
+    <div id="top-bar">
+        <div class="top-btn" id="home-btn" onclick="resetToMenu()">
+            <i class="fa-solid fa-house"></i> الرئيسية
+        </div>
+        <div class="top-btn">
+            النقاط: <span id="score-display" style="color:var(--green); margin-right:5px;">0</span>
+        </div>
+        <div class="top-btn" onclick="toggleFullScreen()">
+            <i class="fa-solid fa-expand"></i> ملء الشاشة
+        </div>
+    </div>
+
+    <!-- محاكي الروبوت الثلاثي الأبعاد -->
+    <div id="robot-container"></div>
+
+    <!-- قائمة الألعاب -->
+    <div id="menu-zones">
+        <div class="game-card" data-id="quiz_general" onclick="selectGame('quiz_general')">
+            <div class="card-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+            <span>معلومات عامة</span>
+        </div>
+        <div class="game-card" data-id="proverbs" onclick="selectGame('proverbs')">
+            <div class="card-icon"><i class="fa-solid fa-book-open"></i></div>
+            <span>أمثال وحكم</span>
+        </div>
+        <div class="game-card" data-id="memory" onclick="selectGame('memory')">
+            <div class="card-icon"><i class="fa-solid fa-brain"></i></div>
+            <span>تحدي الذاكرة</span>
+        </div>
+        <div class="game-card" data-id="xo" onclick="selectGame('xo')">
+            <div class="card-icon"><i class="fa-solid fa-xmark"></i></div>
+            <span>تحدي X - O الصعب</span>
+        </div>
+        <div class="game-card" data-id="catcher" onclick="selectGame('catcher')">
+            <div class="card-icon"><i class="fa-solid fa-gem"></i></div>
+            <span>صيد الجواهر</span>
+        </div>
+        <div class="game-card" data-id="space" onclick="selectGame('space')">
+            <div class="card-icon"><i class="fa-solid fa-rocket"></i></div>
+            <span>تحدي الأشكال</span>
+        </div>
+    </div>
+
+    <div id="game-stage"></div>
+
+    <script>
+        const videoElement = document.getElementById('webcam');
+        const visitorCanvas = document.getElementById('visitor-canvas');
+        const canvasCtx = visitorCanvas.getContext('2d');
+
+        const handPointer = document.getElementById('hand-pointer');
+        const robotContainer = document.getElementById('robot-container');
+        const menuZones = document.getElementById('menu-zones');
+        const gameStage = document.getElementById('game-stage');
+        const scoreDisplay = document.getElementById('score-display');
+        const bgMusic = document.getElementById('bg-music');
+        const resultModal = document.getElementById('result-modal');
+
+        let currentGame = null;
+        let lastPointerX = window.innerWidth / 2;
+        let lastPointerY = window.innerHeight / 2;
+        let globalScore = 0;
+        let hasGreetedVisitor = false;
+        let isProcessingAction = false; 
+
+        const HOVER_DELAY = 1800; 
+
+        // الثلاثي الأبعاد ( Three.js )
+        const robotScene = new THREE.Scene();
+        const robotCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const robotRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        robotRenderer.setSize(window.innerWidth, window.innerHeight);
+        robotContainer.appendChild(robotRenderer.domElement);
+
+        robotScene.add(new THREE.AmbientLight(0xffffff, 1.2));
+        const pLight = new THREE.PointLight(0x00f3ff, 4, 20); pLight.position.set(3, 5, 5); robotScene.add(pLight);
+
+        const loader = new THREE.GLTFLoader();
+        let samRobot = null;
+        let mixer = null;
+        const clock = new THREE.Clock();
+
+        loader.load('marin.glb', function (gltf) {
+            samRobot = gltf.scene;
+            samRobot.scale.set(1.6, 1.6, 1.6);
+            samRobot.position.set(0, -1.2, 0);
+
+            if (gltf.animations && gltf.animations.length > 0) {
+                mixer = new THREE.AnimationMixer(samRobot);
+                if (gltf.animations[0]) gltf.animations[0].play();
+            }
+            robotScene.add(samRobot);
+        }, undefined, function (error) { console.error("Error loading marin.glb:", error); });
+
+        robotCamera.position.z = 4.5;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+            if (mixer) mixer.update(delta);
+            if (samRobot) {
+                samRobot.position.y = -1.2 + Math.sin(Date.now() * 0.0015) * 0.06;
+                const targetRotY = ((lastPointerX / window.innerWidth) - 0.5) * 0.6;
+                samRobot.rotation.y += (targetRotY - samRobot.rotation.y) * 0.03;
+            }
+            robotRenderer.render(robotScene, robotCamera);
+        }
+        animate();
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    alert(`خطأ أثناء تفعيل ملء الشاشة: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+            }
+        }
+
+        // القارئ الصوتي للروبوت
+        function speak(text, callback) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ar-SA';
+                utterance.rate = 0.8; 
+                utterance.pitch = 1.0;
+                if (callback) utterance.onend = callback;
+                window.speechSynthesis.speak(utterance);
+            } else if (callback) callback();
+        }
+
+        // الروبوت يشرح بالصوت مباشرة مع حركة التفاعل
+        function runRobotSpeechSequence() {
+            const robotSpeechParts = [
+                "أهلاً وسهلاً بك في المعرض التفاعلي الذكي. أنا الروبوت مارين، مرشدك اليوم.",
+                "تم تصميم هذا البرنامج لتقديم تجربة تجمع بين المعرفة والتسلية والتفاعل الذكي.",
+                "الآن تفضل باختيار اللعبة التي تريدها، إما عن طريق اللمس المباشر على الشاشة، أو عبر الاستشعار والتأشير بيدك عن بعد."
+            ];
+
+            let index = 0;
+            function speakNextPart() {
+                if (index < robotSpeechParts.length) {
+                    speak(robotSpeechParts[index], () => {
+                        index++;
+                        setTimeout(speakNextPart, 800);
+                    });
+                } else {
+                    menuZones.classList.add('show');
+                }
+            }
+            speakNextPart();
+        }
+
+        function showFinalModal(title, desc) {
+            confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
+            document.getElementById('result-title').innerText = title;
+            document.getElementById('result-desc').innerText = desc;
+            document.getElementById('final-score').innerText = globalScore;
+            resultModal.classList.add('show');
+            speak(`${title}. ${desc}. مجموع نقاطك هو ${globalScore}`);
+        }
+
+        const selfieSegmentation = new SelfieSegmentation({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}` });
+        selfieSegmentation.setOptions({ modelSelection: 1 });
+
+        selfieSegmentation.onResults((results) => {
+            if (currentGame === null) return;
+            visitorCanvas.width = results.image.width;
+            visitorCanvas.height = results.image.height;
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, visitorCanvas.width, visitorCanvas.height);
+            canvasCtx.drawImage(results.segmentationMask, 0, 0, visitorCanvas.width, visitorCanvas.height);
+            canvasCtx.globalCompositeOperation = 'source-in';
+            canvasCtx.drawImage(results.image, 0, 0, visitorCanvas.width, visitorCanvas.height);
+            canvasCtx.restore();
+        });
+
+        const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+        hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.5 });
+
+        hands.onResults((results) => {
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                handPointer.style.display = 'block';
+                const hand = results.multiHandLandmarks[0];
+                const rawX = (1 - hand[8].x) * window.innerWidth;
+                const rawY = hand[8].y * window.innerHeight;
+                
+                lastPointerX += (rawX - lastPointerX) * 0.08;
+                lastPointerY += (rawY - lastPointerY) * 0.08;
+                handPointer.style.left = `${lastPointerX}px`;
+                handPointer.style.top = `${lastPointerY}px`;
+                
+                if (!hasGreetedVisitor && currentGame === null) {
+                    hasGreetedVisitor = true;
+                    runRobotSpeechSequence();
+                }
+                checkCollisions(lastPointerX, lastPointerY);
+            } else {
+                handPointer.style.display = 'none';
+                if (!hasGreetedVisitor && currentGame === null) {
+                    hasGreetedVisitor = true;
+                    runRobotSpeechSequence();
+                }
+            }
+        });
+
+        let currentHoveredElement = null;
+        let hoverTimer = null;
+
+        function checkCollisions(x, y) {
+            const homeBtns = [document.getElementById('home-btn'), document.getElementById('modal-home-btn')];
+            let hoveredHome = false;
+
+            homeBtns.forEach(homeBtn => {
+                if (!homeBtn) return;
+                const homeRect = homeBtn.getBoundingClientRect();
+                if (x >= homeRect.left && x <= homeRect.right && y >= homeRect.top && y <= homeRect.bottom) {
+                    hoveredHome = true;
+                    if (!homeBtn.classList.contains('hovered')) {
+                        homeBtn.classList.add('hovered');
+                        handPointer.classList.add('loading');
+                        hoverTimer = setTimeout(() => { resetToMenu(); }, HOVER_DELAY);
+                    }
+                } else {
+                    homeBtn.classList.remove('hovered');
+                }
+            });
+
+            if (hoveredHome) return;
+            if (isProcessingAction) return;
+
+            if (currentGame === null) {
+                if (!menuZones.classList.contains('show')) return;
+                const cards = document.querySelectorAll('.game-card');
+                let found = false;
+
+                cards.forEach(card => {
+                    const rect = card.getBoundingClientRect();
+                    if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+                        found = true;
+                        if (currentHoveredElement !== card) {
+                            clearHover();
+                            currentHoveredElement = card;
+                            card.classList.add('hovered');
+                            handPointer.classList.add('loading');
+
+                            hoverTimer = setTimeout(() => {
+                                selectGame(card.getAttribute('data-id'));
+                                clearHover();
+                            }, HOVER_DELAY);
+                        }
+                    }
+                });
+                if (!found) clearHover();
+            } else { checkGameInteractions(x, y); }
+        }
+
+        function clearHover() {
+            if (hoverTimer) clearTimeout(hoverTimer);
+            handPointer.classList.remove('loading');
+            document.querySelectorAll('.game-card, .option-btn, .memory-card, .space-target, .xo-cell, .word-btn, .top-btn').forEach(c => c.classList.remove('hovered'));
+            currentHoveredElement = null;
+        }
+
+        function selectGame(id) {
+            currentGame = id;
+            globalScore = 0;
+            scoreDisplay.innerText = globalScore;
+            menuZones.classList.remove('show');
+            try { bgMusic.play(); } catch(e){}
+            visitorCanvas.style.display = 'block';
+            gameStage.style.display = 'flex';
+
+            if (id === 'quiz_general') startGeneralQuiz();
+            else if (id === 'proverbs') startProverbsGame();
+            else if (id === 'memory') startMemoryGame();
+            else if (id === 'xo') startXOGame();
+            else if (id === 'catcher') startCatcherGame();
+            else if (id === 'space') startSpaceGame();
+        }
+
+        // --- 1. معلومات عامة ---
+        const generalQuestionsBank = [
+            { q: "ما هي عاصمة جمهورية اليمن؟", options: ["صنعاء", "عدن", "تعز", "المكلا"], ans: 0 },
+            { q: "ما هي سرعة الضوء في الفراغ تقريباً؟", options: ["300,000 كم/ث", "150,000 كم/ث", "500,000 كم/ث", "1,000,000 كم/ث"], ans: 0 },
+            { q: "ما هو العنصر الكيميائي الذي رمزه (O)؟", options: ["الهيدروجين", "الأكسجين", "النيتروجين", "الحديد"], ans: 1 },
+            { q: "ما هو حاصل ضرب 12 × 12؟", options: ["124", "144", "164", "184"], ans: 1 },
+            { q: "ما هي عاصمة دولة الإمارات العربية المتحدة؟", options: ["دبي", "أبوظبي", "الشارقة", "العين"], ans: 1 },
+            { q: "ما هو أكبر كوكب في المجموعة الشمسية؟", options: ["الأرض", "المريخ", "المشتري", "زحل"], ans: 2 }
+        ];
+
+        let visitorQuestions = [];
+        let currentQIdx = 0;
+
+        function startGeneralQuiz() {
+            visitorQuestions = [...generalQuestionsBank].sort(() => Math.random() - 0.5).slice(0, 5);
+            currentQIdx = 0;
+            renderGeneralQuestion();
+        }
+
+        function renderGeneralQuestion() {
+            if (currentQIdx >= visitorQuestions.length) {
+                showFinalModal("أحسنت ممتاز!", `أنهيت اختبار المعلومات العامة بـ ${globalScore} نقطة!`);
+                return;
+            }
+            const qData = visitorQuestions[currentQIdx];
+            gameStage.innerHTML = `
+                <div class="question-box">
+                    <span style="color:var(--gold); font-weight:bold; font-size:18px;">السؤال ${currentQIdx + 1} من 5</span>
+                    <h2 style="margin-top:10px;">${qData.q}</h2>
+                    <div class="timer-delay-bar" id="delay-bar">مهلة للتفكير قبل الانتقال للخطوة التالية... (<span id="count-num">5</span>)</div>
+                </div>
+                <div class="options-grid">
+                    ${qData.options.map((opt, i) => `<div class="option-btn" data-idx="${i}" onclick="handleOptionClick(${i})">${opt}</div>`).join('')}
+                </div>
+            `;
+            speak(qData.q);
+        }
+
+        function handleOptionClick(selectedIdx) {
+            if (isProcessingAction) return;
+            isProcessingAction = true;
+            const options = document.querySelectorAll('.option-btn');
+            const correctIdx = visitorQuestions[currentQIdx].ans;
+
+            if (selectedIdx === correctIdx) {
+                options[selectedIdx].classList.add('correct');
+                globalScore += 5;
+                scoreDisplay.innerText = globalScore;
+                speak("إجابة صحيحة ممتاز!");
+            } else {
+                options[selectedIdx].classList.add('wrong');
+                options[correctIdx].classList.add('correct');
+                speak("إجابة خاطئة");
+            }
+
+            startThinkingTimer(() => {
+                currentQIdx++;
+                renderGeneralQuestion();
+                isProcessingAction = false;
+                clearHover();
+            });
+        }
+
+        function startThinkingTimer(callback) {
+            const delayBar = document.getElementById('delay-bar');
+            const countNum = document.getElementById('count-num');
+            if (delayBar) delayBar.style.display = 'block';
+
+            let count = 5; 
+            const timerInterval = setInterval(() => {
+                count--;
+                if (countNum) countNum.innerText = count;
+                if (count <= 0) {
+                    clearInterval(timerInterval);
+                    callback();
+                }
+            }, 1000);
+        }
+
+        // --- 2. الأمثال والحكم ---
+        const proverbsBank = [
+            "ما طار طير وارتفع إلا كما طار وقع",
+            "من طلب العلا سهر الليالي",
+            "إذا كان الكلام من فضة فالسكوت من ذهب",
+            "الصديق وقت الضيق",
+            "من جد وجد ومن زرع حصد",
+            "لا تؤجل عمل اليوم إلى الغد"
+        ];
+
+        let visitorProverbs = [];
+        let currentProverbIdx = 0;
+        let selectedProverb = "";
+        let shuffledWords = [];
+        let userArrangedWords = [];
+
+        function startProverbsGame() {
+            visitorProverbs = [...proverbsBank].sort(() => Math.random() - 0.5).slice(0, 5);
+            currentProverbIdx = 0;
+            loadNextProverb();
+        }
+
+        function loadNextProverb() {
+            if (currentProverbIdx >= visitorProverbs.length) {
+                showFinalModal("إنجاز رائع!", `أكملت ترتيب الأمثال بنجاح وحصلت على ${globalScore} نقطة!`);
+                return;
+            }
+            selectedProverb = visitorProverbs[currentProverbIdx];
+            shuffledWords = selectedProverb.split(" ").sort(() => Math.random() - 0.5);
+            userArrangedWords = [];
+            renderProverbGame();
+        }
+
+        function renderProverbGame() {
+            gameStage.innerHTML = `
+                <h3 style="color:var(--gold); margin-bottom:5px;">المثل ${currentProverbIdx + 1} من 5</h3>
+                <h2 style="margin-bottom:10px; color:var(--cyan);">رتب المثل بيدك أو باللمس ببطء:</h2>
+                <div style="min-height:60px; background:rgba(255,255,255,0.1); border:2px dashed var(--gold); border-radius:15px; padding:15px 30px; font-size:24px; font-weight:bold; margin-bottom:20px; color:var(--gold);">
+                    ${userArrangedWords.join(" ") || "اختر الكلمات بالترتيب..."}
+                </div>
+                <div class="words-container">
+                    ${shuffledWords.map((word, idx) => `<div class="word-btn" data-word-idx="${idx}" onclick="handleWordClick(${idx})">${word}</div>`).join('')}
+                </div>
+            `;
+        }
+
+        function handleWordClick(idx) {
+            if (isProcessingAction) return;
+            const btn = document.querySelector(`.word-btn[data-word-idx="${idx}"]`);
+            if (!btn || btn.classList.contains('selected')) return;
+
+            userArrangedWords.push(shuffledWords[idx]);
+            btn.classList.add('selected');
+            btn.style.visibility = 'hidden';
+            renderProverbGame();
+
+            if (userArrangedWords.length === shuffledWords.length) {
+                isProcessingAction = true;
+                if (userArrangedWords.join(" ") === selectedProverb) {
+                    globalScore += 10;
+                    scoreDisplay.innerText = globalScore;
+                    speak("ممتاز! ترتيب صحيح", () => {
+                        setTimeout(() => {
+                            currentProverbIdx++;
+                            loadNextProverb();
+                            isProcessingAction = false;
+                        }, 1800);
+                    });
+                } else {
+                    speak("حاول مرة أخرى");
+                    setTimeout(() => {
+                        userArrangedWords = [];
+                        renderProverbGame();
+                        isProcessingAction = false;
+                    }, 2000);
+                }
+            }
+        }
+
+        // --- 3. لعبة الذاكرة ---
+        const allMemoryIcons = ['🚀','⚡','🌟','👑','🎯','💎'];
+        let memoryCards = [];
+        let flippedCards = [];
+        let matchedPairs = 0;
+
+        function startMemoryGame() {
+            matchedPairs = 0;
+            memoryCards = [...allMemoryIcons, ...allMemoryIcons].sort(() => Math.random() - 0.5);
+
+            gameStage.innerHTML = `
+                <h2 style="margin-bottom:20px; color:var(--cyan);">طابق الأشكال المماثلة:</h2>
+                <div class="memory-grid">
+                    ${memoryCards.map((icon, idx) => `<div class="memory-card" data-icon="${icon}" data-idx="${idx}" onclick="handleCardClick(${idx})">❓</div>`).join('')}
+                </div>
+            `;
+        }
+
+        function handleCardClick(idx) {
+            if (isProcessingAction) return;
+            const card = document.querySelector(`.memory-card[data-idx="${idx}"]`);
+            if (!card || card.classList.contains('flipped')) return;
+
+            card.classList.add('flipped');
+            card.innerText = card.getAttribute('data-icon');
+            flippedCards.push(card);
+
+            if (flippedCards.length === 2) {
+                isProcessingAction = true;
+                if (flippedCards[0].getAttribute('data-icon') === flippedCards[1].getAttribute('data-icon')) {
+                    globalScore += 5;
+                    scoreDisplay.innerText = globalScore;
+                    matchedPairs++;
+                    flippedCards = [];
+                    isProcessingAction = false;
+                    if (matchedPairs >= 6) showFinalModal("عبقري الذاكرة!", "طابقت جميع الأشكال بنجاح!");
+                } else {
+                    setTimeout(() => {
+                        flippedCards.forEach(c => { c.classList.remove('flipped'); c.innerText = '❓'; });
+                        flippedCards = [];
+                        isProcessingAction = false;
+                    }, 1500);
+                }
+            }
+        }
+
+        // --- 4. تحدي X - O ---
+        let xoBoard = Array(9).fill(null);
+
+        function startXOGame() {
+            xoBoard = Array(9).fill(null);
+            renderXOBoard();
+        }
+
+        function renderXOBoard() {
+            gameStage.innerHTML = `
+                <h2 style="margin-bottom:20px; color:var(--cyan);">تحدي X - O الذكي (دورك الآن):</h2>
+                <div class="xo-board">
+                    ${xoBoard.map((val, i) => `<div class="xo-cell" data-xo="${i}" onclick="handleXOClick(${i})">${val || ''}</div>`).join('')}
+                </div>
+            `;
+            document.querySelectorAll('.xo-cell').forEach((cell, i) => {
+                if (xoBoard[i] === 'X') cell.style.color = 'var(--cyan)';
+                if (xoBoard[i] === 'O') cell.style.color = 'var(--red)';
+            });
+        }
+
+        function handleXOClick(idx) {
+            if (isProcessingAction || xoBoard[idx]) return;
+            isProcessingAction = true;
+            xoBoard[idx] = 'X';
+            renderXOBoard();
+
+            if (checkXOWin('X')) {
+                globalScore += 20;
+                scoreDisplay.innerText = globalScore;
+                showFinalModal("انتصار تاريخي!", "لقد هزمت الروبوت مارين في التحدي!");
+                isProcessingAction = false;
+                return;
+            }
+
+            setTimeout(() => {
+                const botMove = getBestXOMove();
+                if (botMove !== undefined && botMove !== null) {
+                    xoBoard[botMove] = 'O';
+                    renderXOBoard();
+
+                    if (checkXOWin('O')) {
+                        showFinalModal("فاز الروبوت مارين!", "حاول مرة أخرى في التحدي القادم.");
+                        isProcessingAction = false;
+                        return;
+                    }
+                }
+                isProcessingAction = false;
+            }, 1200);
+        }
+
+        function getBestXOMove() {
+            for (let i = 0; i < 9; i++) {
+                if (!xoBoard[i]) {
+                    xoBoard[i] = 'O';
+                    if (checkXOWin('O')) { xoBoard[i] = null; return i; }
+                    xoBoard[i] = null;
+                }
+            }
+            for (let i = 0; i < 9; i++) {
+                if (!xoBoard[i]) {
+                    xoBoard[i] = 'X';
+                    if (checkXOWin('X')) { xoBoard[i] = null; return i; }
+                    xoBoard[i] = null;
+                }
+            }
+            if (!xoBoard[4]) return 4;
+            const corners = [0, 2, 6, 8].filter(c => !xoBoard[c]);
+            if (corners.length > 0) return corners[Math.floor(Math.random() * corners.length)];
+            const empty = xoBoard.map((v, i) => v === null ? i : null).filter(v => v !== null);
+            return empty[0];
+        }
+
+        // --- 5. صيد الجواهر ---
+        let catcherInterval = null;
+        function startCatcherGame() {
+            gameStage.innerHTML = `<div id="catcher-basket">السلة 🧺</div>`;
+            const basket = document.getElementById('catcher-basket');
+
+            catcherInterval = setInterval(() => {
+                if (currentGame !== 'catcher') return;
+                const gem = document.createElement('div');
+                gem.className = 'falling-item';
+                gem.innerHTML = ['💎', '⭐', '🔮', '🌟', '👑'][Math.floor(Math.random() * 5)];
+                gem.style.left = `${Math.random() * (window.innerWidth - 120) + 60}px`;
+                gem.style.top = '0px';
+                gameStage.appendChild(gem);
+
+                let topPos = 0;
+                const fallSpeed = 2 + Math.random() * 1.5;
+
+                const fallAnim = setInterval(() => {
+                    if (currentGame !== 'catcher') { clearInterval(fallAnim); gem.remove(); return; }
+                    topPos += fallSpeed;
+                    gem.style.top = `${topPos}px`;
+
+                    const basketRect = basket.getBoundingClientRect();
+                    const gemRect = gem.getBoundingClientRect();
+
+                    if (
+                        gemRect.bottom >= basketRect.top &&
+                        gemRect.left >= basketRect.left - 25 &&
+                        gemRect.right <= basketRect.right + 25
+                    ) {
+                        globalScore += 3;
+                        scoreDisplay.innerText = globalScore;
+                        gem.remove();
+                        clearInterval(fallAnim);
+
+                        if (globalScore >= 30) {
+                            clearInterval(catcherInterval);
+                            showFinalModal("صائد مجتهد!", "جمعت أكثر من 30 نقطة من الجواهر بنجاح!");
+                        }
+                    } else if (topPos > window.innerHeight) {
+                        gem.remove();
+                        clearInterval(fallAnim);
+                    }
+                }, 20);
+
+            }, 1500);
+        }
+
+        // --- 6. تحدي الأشكال ---
+        function startSpaceGame() {
+            gameStage.innerHTML = '';
+            spawnSpaceTarget();
+        }
+
+        function spawnSpaceTarget() {
+            if (currentGame !== 'space') return;
+            const existing = document.querySelector('.space-target');
+            if (existing) existing.remove();
+
+            const target = document.createElement('div');
+            target.className = 'space-target';
+            target.innerHTML = ['🚀', '🛸', '👾', '☄️', '🌌'][Math.floor(Math.random() * 5)];
+            target.style.left = `${Math.random() * (window.innerWidth - 220) + 110}px`;
+            target.style.top = `${Math.random() * (window.innerHeight - 280) + 140}px`;
+            target.onclick = () => {
+                if (isProcessingAction) return;
+                isProcessingAction = true;
+                globalScore += 5;
+                scoreDisplay.innerText = globalScore;
+                target.style.transform = "scale(1.4)";
+                setTimeout(() => {
+                    spawnSpaceTarget();
+                    isProcessingAction = false;
+                }, 500);
+
+                if (globalScore >= 35) {
+                    showFinalModal("بطل الفضاء!", "دمّرت الأشكال الفضائية وحققت النتيجة المطلوب!");
+                }
+            };
+            gameStage.appendChild(target);
+        }
+
+        function checkGameInteractions(x, y) {
+            if (isProcessingAction) return;
+
+            if (currentGame === 'catcher') {
+                const basket = document.getElementById('catcher-basket');
+                if (basket) basket.style.left = `${x}px`;
+            } else if (currentGame === 'space') {
+                const target = document.querySelector('.space-target');
+                if (target) {
+                    const rect = target.getBoundingClientRect();
+                    if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+                        target.click();
+                    }
+                }
+            } else if (currentGame === 'quiz_general') {
+                const options = document.querySelectorAll('.option-btn');
+                options.forEach(opt => {
+                    const rect = opt.getBoundingClientRect();
+                    if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+                        if (currentHoveredElement !== opt) {
+                            clearHover();
+                            currentHoveredElement = opt;
+                            opt.classList.add('hovered');
+                            handPointer.classList.add('loading');
+
+                            hoverTimer = setTimeout(() => {
+                                const selectedIdx = parseInt(opt.getAttribute('data-idx'));
+                                handleOptionClick(selectedIdx);
+                            }, HOVER_DELAY);
+                        }
+                    }
+                });
+            } else if (currentGame === 'proverbs') {
+                const wordBtns = document.querySelectorAll('.word-btn');
+                wordBtns.forEach(btn => {
+                    const rect = btn.getBoundingClientRect();
+                    if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+                        if (currentHoveredElement !== btn && !btn.classList.contains('selected')) {
+                            clearHover();
+                            currentHoveredElement = btn;
+                            btn.classList.add('hovered');
+                            handPointer.classList.add('loading');
+
+                            hoverTimer = setTimeout(() => {
+                                const idx = parseInt(btn.getAttribute('data-word-idx'));
+                                handleWordClick(idx);
+                                clearHover();
+                            }, HOVER_DELAY);
+                        }
+                    }
+                });
+            } else if (currentGame === 'memory') {
+                const cards = document.querySelectorAll('.memory-card');
+                cards.forEach(card => {
+                    const rect = card.getBoundingClientRect();
+                    if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+                        if (currentHoveredElement !== card && !card.classList.contains('flipped')) {
+                            clearHover();
+                            currentHoveredElement = card;
+                            card.classList.add('hovered');
+                            handPointer.classList.add('loading');
+
+                            hoverTimer = setTimeout(() => {
+                                const idx = parseInt(card.getAttribute('data-idx'));
+                                handleCardClick(idx);
+                                clearHover();
+                            }, HOVER_DELAY);
+                        }
+                    }
+                });
+            } else if (currentGame === 'xo') {
+                const cells = document.querySelectorAll('.xo-cell');
+                cells.forEach(cell => {
+                    const rect = cell.getBoundingClientRect();
+                    if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+                        const idx = parseInt(cell.getAttribute('data-xo'));
+                        if (!xoBoard[idx] && currentHoveredElement !== cell) {
+                            clearHover();
+                            currentHoveredElement = cell;
+                            cell.classList.add('hovered');
+                            handPointer.classList.add('loading');
+
+                            hoverTimer = setTimeout(() => {
+                                handleXOClick(idx);
+                                clearHover();
+                            }, HOVER_DELAY);
+                        }
+                    }
+                });
+            }
+        }
+
+        function checkXOWin(player) {
+            const winPatterns = [
+                [0,1,2], [3,4,5], [6,7,8],
+                [0,3,6], [1,4,7], [2,5,8],
+                [0,4,8], [2,4,6]
+            ];
+            return winPatterns.some(p => p.every(idx => xoBoard[idx] === player));
+        }
+
+        function resetToMenu() {
+            if (catcherInterval) clearInterval(catcherInterval);
+            try { bgMusic.pause(); bgMusic.currentTime = 0; } catch(e){}
+
+            currentGame = null;
+            hasGreetedVisitor = false;
+            isProcessingAction = false;
+            
+            resultModal.classList.remove('show');
+            gameStage.style.display = 'none';
+            visitorCanvas.style.display = 'none';
+            robotContainer.style.opacity = '1';
+
+            menuZones.classList.remove('show');
+            clearHover();
+        }
+
+        const camera = new Camera(videoElement, {
+            onFrame: async () => { 
+                await hands.send({ image: videoElement });
+                if (currentGame !== null) {
+                    await selfieSegmentation.send({ image: videoElement });
+                }
+            },
+            width: 1280, height: 720
+        });
+
+        window.addEventListener('load', () => { camera.start(); });
+    </script>
+</body>
+</html>
