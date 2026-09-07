@@ -220,7 +220,7 @@
         <source src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=ambient-soft-piano-11382.mp3" type="audio/mpeg">
     </audio>
 
-    <video id="webcam" autoplay playsinline></video>
+    <video id="webcam" autoplay playsinline muted></video>
     <canvas id="visitor-canvas"></canvas>
     <div id="hand-pointer"></div>
 
@@ -317,17 +317,22 @@
         let mixer = null;
         const clock = new THREE.Clock();
 
-        loader.load('marin.glb', function (gltf) {
+        // ** تم تعديل التحميل لتلافي خطأ التشغيل **
+        loader.load('./marin.glb', function (gltf) {
             samRobot = gltf.scene;
             samRobot.scale.set(1.6, 1.6, 1.6);
             samRobot.position.set(0, -1.2, 0);
 
             if (gltf.animations && gltf.animations.length > 0) {
                 mixer = new THREE.AnimationMixer(samRobot);
-                if (gltf.animations[0]) gltf.animations[0].play();
+                const action = mixer.clipAction(gltf.animations[0]);
+                action.play();
             }
             robotScene.add(samRobot);
-        }, undefined, function (error) { console.error("Error loading marin.glb:", error); });
+            console.log("تم تحميل ملف الروبوت بنجاح");
+        }, undefined, function (error) { 
+            console.error("خطأ في تحميل ملف الروبوت marin.glb:", error); 
+        });
 
         robotCamera.position.z = 4.5;
 
@@ -995,6 +1000,7 @@
             clearHover();
         }
 
+        // ** تم تحديث تشغيل الكاميرا للتوافق مع شروط المتصفحات **
         const camera = new Camera(videoElement, {
             onFrame: async () => { 
                 await hands.send({ image: videoElement });
@@ -1005,7 +1011,9 @@
             width: 1280, height: 720
         });
 
-        window.addEventListener('load', () => { camera.start(); });
+        window.addEventListener('load', () => { 
+            camera.start().catch(err => console.error("تعذر فتح الكاميرا تلقائياً:", err)); 
+        });
     </script>
 </body>
 </html>
