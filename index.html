@@ -73,6 +73,12 @@
             transition: all 0.3s ease; font-size: 16px; font-weight: bold; color: #fff;
         }
 
+        /* زر ملء الشاشة مصغر فقط أيقونة */
+        .fullscreen-icon-btn {
+            width: 45px; height: 45px; border-radius: 50%;
+            padding: 0; justify-content: center; font-size: 18px;
+        }
+
         .top-btn:hover, .top-btn.hovered {
             background: var(--cyan); color: #000;
             box-shadow: 0 0 30px var(--cyan); transform: scale(1.05);
@@ -117,17 +123,17 @@
         }
 
         #hand-pointer {
-            position: absolute; width: 42px; height: 42px; border: 3px solid var(--cyan);
-            border-radius: 50%; background: rgba(0, 243, 255, 0.3);
+            position: absolute; width: 45px; height: 45px; border: 3px solid var(--cyan);
+            border-radius: 50%; background: rgba(0, 243, 255, 0.2);
             box-shadow: 0 0 25px var(--cyan); transform: translate(-50%, -50%);
             z-index: 999; pointer-events: none; display: none;
             transition: transform 0.1s ease-out;
         }
 
         #hand-pointer.loading::after {
-            content: ''; position: absolute; top: -5px; left: -5px; right: -5px; bottom: -5px;
-            border: 3px solid transparent; border-top-color: var(--gold); border-radius: 50%;
-            opacity: 1; animation: spin 1.8s linear infinite;
+            content: ''; position: absolute; top: -6px; left: -6px; right: -6px; bottom: -6px;
+            border: 4px solid transparent; border-top-color: var(--gold); border-radius: 50%;
+            opacity: 1; animation: spin 3s linear infinite;
         }
 
         @keyframes spin { 100% { transform: rotate(360deg); } }
@@ -171,6 +177,24 @@
         .option-btn:hover, .option-btn.hovered { border-color: var(--cyan); background: rgba(0, 243, 255, 0.25); transform: scale(1.03); }
         .option-btn.correct { background: var(--green) !important; border-color: #fff !important; }
         .option-btn.wrong { background: var(--red) !important; border-color: #fff !important; }
+        .option-btn.disabled { opacity: 0.4; pointer-events: none; }
+
+        /* تنسيقات فروع الأسئلة والأمثال */
+        .branches-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 850px; width: 100%; }
+        .branch-card {
+            background: rgba(255,255,255,0.06); border: 2px solid var(--cyan); border-radius: 20px;
+            padding: 25px; text-align: center; cursor: pointer; transition: all 0.3s;
+        }
+        .branch-card:hover, .branch-card.hovered { background: rgba(0,243,255,0.2); transform: scale(1.05); }
+
+        .items-selection-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; max-width: 850px; width: 100%; }
+        .item-select-btn {
+            background: rgba(255,255,255,0.08); border: 2px solid var(--purple); border-radius: 15px;
+            padding: 20px 10px; font-size: 20px; font-weight: bold; cursor: pointer; text-align: center;
+            transition: all 0.3s;
+        }
+        .item-select-btn:hover, .item-select-btn.hovered { background: var(--purple); transform: scale(1.08); }
+        .item-select-btn.completed { background: rgba(255,255,255,0.1) !important; border-color: #555 !important; opacity: 0.4; pointer-events: none; }
 
         .words-container { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; max-width: 850px; margin-top: 25px; }
         .word-btn {
@@ -179,6 +203,7 @@
             cursor: pointer; transition: all 0.3s; color: #fff;
         }
         .word-btn:hover, .word-btn.hovered { transform: scale(1.1); border-color: var(--cyan); }
+        .word-btn.disabled { opacity: 0.2; pointer-events: none; visibility: hidden; }
 
         .memory-grid { display: grid; grid-template-columns: repeat(4, 120px); gap: 15px; }
         .memory-card {
@@ -205,23 +230,24 @@
         }
         .xo-cell:hover, .xo-cell.hovered { background: rgba(0, 243, 255, 0.25); border-color: var(--gold); }
 
-        /* لعبة تفكيك الرموز */
+        /* تحسينات لعبة فك الرمز الأمني التنافسية والصعبة */
         .code-display {
-            font-size: 42px; font-weight: bold; color: var(--gold);
-            letter-spacing: 12px; margin: 20px 0; background: rgba(0,0,0,0.5);
+            font-size: 45px; font-weight: 900; color: var(--gold);
+            letter-spacing: 12px; margin: 15px 0; background: rgba(0,0,0,0.6);
             padding: 15px 40px; border-radius: 15px; border: 2px solid var(--gold);
-            box-shadow: 0 0 25px var(--gold);
+            box-shadow: 0 0 30px var(--gold);
         }
         .keypad-grid {
-            display: grid; grid-template-columns: repeat(3, 90px); gap: 15px; margin-top: 15px;
+            display: grid; grid-template-columns: repeat(3, 85px); gap: 15px; margin-top: 15px;
         }
         .key-btn {
-            width: 90px; height: 90px; border-radius: 18px; border: 2px solid var(--cyan);
+            width: 85px; height: 85px; border-radius: 18px; border: 2px solid var(--cyan);
             background: rgba(255,255,255,0.08); font-size: 32px; font-weight: bold;
             display: flex; align-items: center; justify-content: center;
             cursor: pointer; transition: all 0.2s; color: #fff;
         }
         .key-btn:hover, .key-btn.hovered { background: var(--cyan); color: #000; transform: scale(1.1); }
+        .code-timer { font-size: 26px; color: var(--red); font-weight: 900; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -252,8 +278,9 @@
         <div class="top-btn">
             النقاط: <span id="score-display" style="color:var(--green); margin-right:5px;">0</span>
         </div>
-        <div class="top-btn" onclick="toggleFullScreen()">
-            <i class="fa-solid fa-expand"></i> ملء الشاشة
+        <!-- تم اختصار زر ملء الشاشة لأيقونة مصغرة فقط -->
+        <div class="top-btn fullscreen-icon-btn" onclick="toggleFullScreen()" title="ملء الشاشة">
+            <i class="fa-solid fa-expand"></i>
         </div>
     </div>
 
@@ -264,11 +291,11 @@
     <div id="menu-zones">
         <div class="game-card" data-id="quiz_general" onclick="selectGame('quiz_general')">
             <div class="card-icon"><i class="fa-solid fa-graduation-cap"></i></div>
-            <span>معلومات عامة</span>
+            <span>أسئلة متنوعة (50)</span>
         </div>
         <div class="game-card" data-id="proverbs" onclick="selectGame('proverbs')">
             <div class="card-icon"><i class="fa-solid fa-book-open"></i></div>
-            <span>أمثال وحكم</span>
+            <span>أمثال وحكم (50)</span>
         </div>
         <div class="game-card" data-id="memory" onclick="selectGame('memory')">
             <div class="card-icon"><i class="fa-solid fa-brain"></i></div>
@@ -284,7 +311,7 @@
         </div>
         <div class="game-card" data-id="code_breaker" onclick="selectGame('code_breaker')">
             <div class="card-icon"><i class="fa-solid fa-key"></i></div>
-            <span>فك الرمز الأمني</span>
+            <span>اختراق الرمز الأمني</span>
         </div>
     </div>
 
@@ -310,7 +337,12 @@
         let hasGreetedVisitor = false;
         let isProcessingAction = false; 
 
-        const HOVER_DELAY = 1800; 
+        // وقت التأخير عند التأشير للحد من الاختيار الخاطئ والسريع (3 ثوانٍ)
+        const HOVER_DELAY = 3000; 
+
+        // إدارة توقيت ترحيب الروبوت عند الخروج (2 دقيقة)
+        let lastExitTime = 0;
+        const ROBOT_WELCOME_COOLDOWN = 120000; // 120 ثانية = 2 دقيقة
 
         // الثلاثي الأبعاد ( Three.js )
         const robotScene = new THREE.Scene();
@@ -327,19 +359,17 @@
         let mixer = null;
         const clock = new THREE.Clock();
 
-        // موضع الكاميرا لرؤية الجسم كاملاً
         robotCamera.position.set(0, 0, 10);
 
         loader.load('./marin.glb', function (gltf) {
             samRobot = gltf.scene;
             
-            // تم التكبير إلى 0.55 ليصبح بحجم واضح ومثالي
-            samRobot.scale.set(0.55, 0.55, 0.55);
+            // تكبير حجم الروبوت ليكون أكبر بكثير وأكثر وضوحاً
+            samRobot.scale.set(0.65, 0.65, 0.65);
             
-            // إنزاله لأسفل قليلاً ليتناسب الحجم المكبر مع الشاشة
-            samRobot.position.set(0, -2.6, 0);
+            // تعديل موضع المظهر ليكون واضحاً وفي المنتصف
+            samRobot.position.set(0, -2.8, 0);
 
-            // اتجاه الروبوت للأمام نحو الشاشة
             samRobot.rotation.y = 0;
 
             if (gltf.animations && gltf.animations.length > 0) {
@@ -348,7 +378,6 @@
                 action.play();
             }
             robotScene.add(samRobot);
-            console.log("تم تحميل ملف الروبوت بنجاح");
         }, undefined, function (error) { 
             console.error("خطأ في تحميل ملف الروبوت marin.glb:", error); 
         });
@@ -358,8 +387,7 @@
             const delta = clock.getDelta();
             if (mixer) mixer.update(delta);
             if (samRobot) {
-                // حركات خفيفة للطفو والتفاعل مع حركة المؤشر
-                samRobot.position.y = -2.6 + Math.sin(Date.now() * 0.0015) * 0.08;
+                samRobot.position.y = -2.8 + Math.sin(Date.now() * 0.0015) * 0.08;
                 const targetRotY = ((lastPointerX / window.innerWidth) - 0.5) * 0.3;
                 samRobot.rotation.y += (targetRotY - samRobot.rotation.y) * 0.05;
             }
@@ -382,7 +410,7 @@
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'ar-SA';
-                utterance.rate = 0.8; 
+                utterance.rate = 0.85; 
                 utterance.pitch = 1.0;
                 if (callback) utterance.onend = callback;
                 window.speechSynthesis.speak(utterance);
@@ -449,16 +477,23 @@
                 handPointer.style.left = `${lastPointerX}px`;
                 handPointer.style.top = `${lastPointerY}px`;
                 
-                if (!hasGreetedVisitor && currentGame === null) {
+                // التأكد من مرور دقيقتين للزائر الجديد
+                const now = Date.now();
+                if (!hasGreetedVisitor && currentGame === null && (now - lastExitTime >= ROBOT_WELCOME_COOLDOWN)) {
                     hasGreetedVisitor = true;
                     runRobotSpeechSequence();
+                } else if (!hasGreetedVisitor && currentGame === null) {
+                    menuZones.classList.add('show');
                 }
                 checkCollisions(lastPointerX, lastPointerY);
             } else {
                 handPointer.style.display = 'none';
-                if (!hasGreetedVisitor && currentGame === null) {
+                const now = Date.now();
+                if (!hasGreetedVisitor && currentGame === null && (now - lastExitTime >= ROBOT_WELCOME_COOLDOWN)) {
                     hasGreetedVisitor = true;
                     runRobotSpeechSequence();
+                } else if (!hasGreetedVisitor && currentGame === null) {
+                    menuZones.classList.add('show');
                 }
             }
         });
@@ -517,7 +552,7 @@
         function clearHover() {
             if (hoverTimer) clearTimeout(hoverTimer);
             handPointer.classList.remove('loading');
-            document.querySelectorAll('.game-card, .option-btn, .memory-card, .xo-cell, .word-btn, .top-btn, .key-btn').forEach(c => c.classList.remove('hovered'));
+            document.querySelectorAll('.game-card, .option-btn, .memory-card, .xo-cell, .word-btn, .top-btn, .key-btn, .branch-card, .item-select-btn').forEach(c => c.classList.remove('hovered'));
             currentHoveredElement = null;
         }
 
@@ -530,7 +565,6 @@
             visitorCanvas.style.display = 'block';
             gameStage.style.display = 'flex';
 
-            // إخفاء الروبوت أثناء اللعب
             robotContainer.style.opacity = '0';
 
             if (id === 'quiz_general') startGeneralQuiz();
@@ -541,66 +575,183 @@
             else if (id === 'code_breaker') startCodeBreakerGame();
         }
 
-        // --- 1. معلومات عامة ---
-        const generalQuestionsBank = [
-            { q: "ما هي عاصمة جمهورية اليمن؟", options: ["صنعاء", "عدن", "تعز", "المكلا"], ans: 0 },
-            { q: "ما هي سرعة الضوء في الفراغ تقريباً؟", options: ["300,000 كم/ث", "150,000 كم/ث", "500,000 كم/ث", "1,000,000 كم/ث"], ans: 0 },
-            { q: "ما هو العنصر الكيميائي الذي رمزه (O)؟", options: ["الهيدروجين", "الأكسجين", "النيتروجين", "الحديد"], ans: 1 },
-            { q: "ما هو حاصل ضرب 12 × 12؟", options: ["124", "144", "164", "184"], ans: 1 },
-            { q: "ما هي عاصمة دولة الإمارات العربية المتحدة؟", options: ["دبي", "أبوظبي", "الشارقة", "العين"], ans: 1 },
-            { q: "ما هو أكبر كوكب في المجموعة الشمسية؟", options: ["الأرض", "المريخ", "المشتري", "زحل"], ans: 2 }
+        // --- 1. بنك 50 سؤالاً مقسمة على 5 فروع ---
+        const questionsBranches = [
+            {
+                id: 'science', name: 'العلوم والتكنولوجيا',
+                questions: [
+                    { q: "ما هو العنصر الكيميائي الذي رمزه (O)؟", options: ["الهيدروجين", "الأكسجين", "النيتروجين", "الحديد"], ans: 1 },
+                    { q: "ما هي سرعة الضوء في الفراغ تقريباً؟", options: ["300,000 كم/ث", "150,000 كم/ث", "500,000 كم/ث", "1,000,000 كم/ث"], ans: 0 },
+                    { q: "ما الكوكب الملقب بالكوكب الأحمر؟", options: ["الزهرة", "المشتري", "المريخ", "زحل"], ans: 2 },
+                    { q: "ما هو أضخم عضو في جسم الإنسان؟", options: ["الكبد", "الجلد", "القلب", "الرئة"], ans: 1 },
+                    { q: "ما الجهاز المستخدم لقياس الزلازل؟", options: ["البارومتر", "السيسموجراف", "الترمومتر", "الهيدرومتر"], ans: 1 },
+                    { q: "ما هي وحدة قياس التيار الكهربائي؟", options: ["الفولت", "الأمبير", "الأوم", "الواط"], ans: 1 },
+                    { q: "ما الغاز الذي تنتجه النباتات أثناء البناء الضوئي؟", options: ["الأكسجين", "ثاني أكسيد الكربون", "النيتروجين", "الهيليوم"], ans: 0 },
+                    { q: "كم عدد عظام جسم الإنسان البالغ؟", options: ["206", "300", "150", "210"], ans: 0 },
+                    { q: "ما أقرب كوكب إلى الشمس؟", options: ["الزهرة", "عطارد", "الأرض", "المريخ"], ans: 1 },
+                    { q: "ما المادة التي تمنح الدم لونه الأحمر؟", options: ["الهيموجلوبين", "الميوجلوبين", "البلازما", "الكولاجين"], ans: 0 }
+                ]
+            },
+            {
+                id: 'history', name: 'التاريخ والحضارات',
+                questions: [
+                    { q: "من بني الأهرامات الثلاثة الشهيرة؟", options: ["الفراعنة", "الرومان", "السومريون", "الفينيقين"], ans: 0 },
+                    { q: "ما هي أول عاصمة في الإسلام؟", options: ["مكة المكرمة", "المدينة المنورة", "الدمشق", "بغداد"], ans: 1 },
+                    { q: "من هو القائد الفاتح لبلاد الأندلس؟", options: ["طارق بن زياد", "خالد بن الوليد", "عقبة بن نافع", "صلاح الدين"], ans: 0 },
+                    { q: "في أي عام تم تحرير القدس في معركة حطين؟", options: ["1187م", "1200م", "1099م", "1150م"], ans: 0 },
+                    { q: "ما أقدم حضارة مأهولة في التاريخ؟", options: ["حضارة سومر", "الحضارة الفرعونية", "حضارة المايا", "الحضارة الإغريقية"], ans: 0 },
+                    { q: "من هو مؤسس الدولة الأموية؟", options: ["معاوية بن أبي سفيان", "عبد الملك بن مروان", "عمر بن عبد العزيز", "الوليد بن عبد الملك"], ans: 0 },
+                    { q: "أين تقع حدائق بابل المعلقة القديمة؟", options: ["العراق", "مصر", "سوريا", "اليونان"], ans: 0 },
+                    { q: "من المؤسس الأول للدولة السعودية الأولى؟", options: ["الإمام محمد بن سعود", "الملك عبد العزيز", "الإمام تركي بن عبد الله", "الإمام فيصل"], ans: 0 },
+                    { q: "ما هي المدينة الملقبة بالشهباء؟", options: ["حلب", "دمشق", "حمص", "بغداد"], ans: 0 },
+                    { q: "من القائد الذي هزم المغول في عين جالوت؟", options: ["سيف الدين قطز", "الظاهر بيبرس", "صلاح الدين", "نور الدين زنكي"], ans: 0 }
+                ]
+            },
+            {
+                id: 'geography', name: 'الجغرافيا والعالم',
+                questions: [
+                    { q: "ما هي عاصمة جمهورية اليمن؟", options: ["صنعاء", "عدن", "تعز", "المكلا"], ans: 0 },
+                    { q: "ما هي عاصمة دولة الإمارات؟", options: ["دبي", "أبوظبي", "الشارقة", "العين"], ans: 1 },
+                    { q: "ما أطول نهر في العالم؟", options: ["نهر النيل", "نهر الأمازون", "نهر الميسيسيبي", "نهر اليانغتسي"], ans: 0 },
+                    { q: "ما هي أكبر قارة في العالم من حيث المساحة؟", options: ["آسيا", "أفريقيا", "أوروبا", "أمريكا الشمالية"], ans: 0 },
+                    { q: "ما هي أصفر دولة في العالم مساحة؟", options: ["الفاتيكان", "موناكو", "ملاوي", "البحرين"], ans: 0 },
+                    { q: "ما هي المحيط الأكبر في العالم؟", options: ["المحيط الهادئ", "المحيط الأطلسي", "المحيط الهندي", "المحيط المتجمد"], ans: 0 },
+                    { q: "ما هي عاصمة المملكة العربية السعودية؟", options: ["الرياض", "جدة", "الدمام", "مكة"], ans: 0 },
+                    { q: "في أي قارة تقع دولة البرازيل؟", options: ["أمريكا الجنوبية", "أمريكا الشمالية", "أفريقيا", "آسيا"], ans: 0 },
+                    { q: "ما هي القمة الجبلية الأعلى في العالم؟", options: ["إيفرست", "كليمنجارو", "مون بلان", "المكالي"], ans: 0 },
+                    { q: "ما هي البحر الذي يفصل بين قارتي إفريقيا وأوروبا؟", options: ["البحر الأبيض المتوسط", "البحر الأحمر", "البحر الأسود", "بحر العرب"], ans: 0 }
+                ]
+            },
+            {
+                id: 'culture', name: 'الثقافة العامة',
+                questions: [
+                    { q: "ما هو حاصل ضرب 12 × 12؟", options: ["124", "144", "164", "184"], ans: 1 },
+                    { q: "كم عدد سور القرآن الكريم؟", options: ["114", "110", "120", "112"], ans: 0 },
+                    { q: "ما لسان العرب وأفصح لغة في التاريخ؟", options: ["اللغة العربية", "اللغة الإنجليزية", "اللغة اللاتينية", "اللغة الفارسية"], ans: 0 },
+                    { q: "ما هي أطول سورة في القرآن الكريم؟", options: ["سورة البقرة", "سورة آل عمران", "سورة النساء", "سورة المائدة"], ans: 0 },
+                    { q: "كم عدد ألوان طيف قزح؟", options: ["7", "6", "8", "5"], ans: 0 },
+                    { q: "ما الحيوان الملقب بسفينة الصحراء؟", options: ["الفيلم", "الجمل", "الحصان", "الأسد"], ans: 1 },
+                    { q: "ما العملة الرسمية في اليابان؟", options: ["الين", "الدولار", "اليورو", "الوان"], ans: 0 },
+                    { q: "من هو واضع علم النحو العربي؟", options: ["أبو الأسود الدؤلي", "سيبويه", "الخليل بن أحمد", "الفراهيدي"], ans: 0 },
+                    { q: "ما أسرع الكائنات الحية برية؟", options: ["الفهد", "الأسد", "الغزال", "النمر"], ans: 0 },
+                    { q: "ما اسم صوت الأسد؟", options: ["الزئير", "الصهيل", "المواء", "النهيق"], ans: 0 }
+                ]
+            },
+            {
+                id: 'sports', name: 'الرياضة والأنشطة',
+                questions: [
+                    { q: "كم عدد لاعبي فريق كرة القدم داخل الملعب؟", options: ["11", "10", "12", "9"], ans: 0 },
+                    { q: "كم مدة شوط كرة القدم الأصلي؟", options: ["45 دقيقة", "30 دقيقة", "60 دقيقة", "40 دقيقة"], ans: 0 },
+                    { q: "كل كم سنة تُقام بطولة كأس العالم؟", options: ["4 سنوات", "2 سنتين", "3 سنوات", "5 سنوات"], ans: 0 },
+                    { q: "ما الدولة الأكثر فوزاً بكأس العالم لكرة القدم؟", options: ["البرازيل", "ألمانيا", "إيطاليا", "الأرجنتين"], ans: 0 },
+                    { q: "كم عدد لاعبي فريق كرة السلة داخل الملعب؟", options: ["5", "6", "7", "11"], ans: 0 },
+                    { q: "ما الرياضة التي يُطلق عليها أم الألعاب؟", options: ["ألعاب القوى", "السباحة", "الجمباز", "كرة القدم"], ans: 0 },
+                    { q: "أين أقيمت أول ألعاب أولمبية حديثة؟", options: ["أثينا - اليونان", "باريس - فرنسا", "لندن - بريطانيا", "روما - إيطاليا"], ans: 0 },
+                    { q: "ما الرياضة التي يمارسها اللاعب روجيه فيدرر؟", options: ["التنس", "الغولف", "السباحة", "الملاكمة"], ans: 0 },
+                    { q: "كم عدد الحلقات في العلم الأولمبي؟", options: ["5", "6", "4", "7"], ans: 0 },
+                    { q: "ما الرياضة الملقبة برياضة الملوك؟", options: ["السكواش", "الفروسية / الجولف", "التنس", "الرماية"], ans: 1 }
+                ]
+            }
         ];
 
-        let visitorQuestions = [];
-        let currentQIdx = 0;
+        let visitorQuestionCount = 0;
+        let selectedBranchIdx = null;
+        let answeredQuestionsMap = {}; // لمتابعة الأسئلة المقفلة لكل فرع
 
         function startGeneralQuiz() {
-            visitorQuestions = [...generalQuestionsBank].sort(() => Math.random() - 0.5).slice(0, 5);
-            currentQIdx = 0;
-            renderGeneralQuestion();
+            visitorQuestionCount = 0;
+            answeredQuestionsMap = { 0:[], 1:[], 2:[], 3:[], 4:[] };
+            renderBranchSelection();
         }
 
-        function renderGeneralQuestion() {
-            if (currentQIdx >= visitorQuestions.length) {
-                showFinalModal("أحسنت ممتاز!", `أنهيت اختبار المعلومات العامة بـ ${globalScore} نقطة!`);
+        function renderBranchSelection() {
+            if (visitorQuestionCount >= 5) {
+                showFinalModal("إنجاز رائع!", `أجبت على 5 أسئلة بنجاح وحصلت على ${globalScore} نقطة!`);
                 return;
             }
-            const qData = visitorQuestions[currentQIdx];
+
+            gameStage.innerHTML = `
+                <h2 style="color:var(--gold); margin-bottom:15px;">اختر الفرع المطلوب (${visitorQuestionCount} / 5 أسئلة)</h2>
+                <div class="branches-grid">
+                    ${questionsBranches.map((b, idx) => `
+                        <div class="branch-card" data-b-idx="${idx}" onclick="selectBranch(${idx})">
+                            <i class="fa-solid fa-folder-open" style="font-size:35px; color:var(--cyan); margin-bottom:10px;"></i>
+                            <h3>${b.name}</h3>
+                            <p style="font-size:14px; color:#aaa; margin-top:5px;">متبقي أسئلة في هذا الفرع</p>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            speak("اختر الفرع الذي تريده للأسئلة");
+        }
+
+        function selectBranch(idx) {
+            selectedBranchIdx = idx;
+            renderQuestionSelection();
+        }
+
+        function renderQuestionSelection() {
+            const branch = questionsBranches[selectedBranchIdx];
+            const answeredList = answeredQuestionsMap[selectedBranchIdx] || [];
+
+            gameStage.innerHTML = `
+                <h2 style="color:var(--cyan); margin-bottom:10px;">فرع: ${branch.name}</h2>
+                <p style="margin-bottom:20px; font-size:18px;">اختر رقم السؤال المفضّل لديك:</p>
+                <div class="items-selection-grid">
+                    ${branch.questions.map((_, qIdx) => {
+                        const isDone = answeredList.includes(qIdx);
+                        return `<div class="item-select-btn ${isDone ? 'completed' : ''}" data-q-idx="${qIdx}" onclick="${isDone ? '' : `selectQuestionForVisitor(${qIdx})`}">
+                            ${isDone ? 'مغلق 🔒' : `سؤال ${qIdx + 1}`}
+                        </div>`;
+                    }).join('')}
+                </div>
+                <div class="top-btn" style="margin-top:25px;" onclick="renderBranchSelection()">الرجوع للفروع</div>
+            `;
+        }
+
+        function selectQuestionForVisitor(qIdx) {
+            if (isProcessingAction) return;
+            const qData = questionsBranches[selectedBranchIdx].questions[qIdx];
+            
             gameStage.innerHTML = `
                 <div class="question-box">
-                    <span style="color:var(--gold); font-weight:bold; font-size:18px;">السؤال ${currentQIdx + 1} من 5</span>
+                    <span style="color:var(--gold); font-weight:bold; font-size:18px;">السؤال ${qIdx + 1} من فرع ${questionsBranches[selectedBranchIdx].name}</span>
                     <h2 style="margin-top:10px;">${qData.q}</h2>
-                    <div class="timer-delay-bar" id="delay-bar">مهلة للتفكير قبل الانتقال للخطوة التالية... (<span id="count-num">5</span>)</div>
+                    <div class="timer-delay-bar" id="delay-bar">انتظار جاري العودة... (<span id="count-num">3</span>)</div>
                 </div>
                 <div class="options-grid">
-                    ${qData.options.map((opt, i) => `<div class="option-btn" data-idx="${i}" onclick="handleOptionClick(${i})">${opt}</div>`).join('')}
+                    ${qData.options.map((opt, i) => `<div class="option-btn" data-opt-idx="${i}" onclick="handleGeneralAnswer(${qIdx}, ${i})">${opt}</div>`).join('')}
                 </div>
             `;
             speak(qData.q);
         }
 
-        function handleOptionClick(selectedIdx) {
+        function handleGeneralAnswer(qIdx, selectedOptIdx) {
             if (isProcessingAction) return;
             isProcessingAction = true;
+            
+            const qData = questionsBranches[selectedBranchIdx].questions[qIdx];
             const options = document.querySelectorAll('.option-btn');
-            const correctIdx = visitorQuestions[currentQIdx].ans;
 
-            if (selectedIdx === correctIdx) {
-                options[selectedIdx].classList.add('correct');
-                globalScore += 5;
+            if (selectedOptIdx === qData.ans) {
+                options[selectedOptIdx].classList.add('correct');
+                globalScore += 10;
                 scoreDisplay.innerText = globalScore;
                 speak("إجابة صحيحة ممتاز!");
             } else {
-                options[selectedIdx].classList.add('wrong');
-                options[correctIdx].classList.add('correct');
+                options[selectedOptIdx].classList.add('wrong');
+                options[qData.ans].classList.add('correct');
                 speak("إجابة خاطئة");
             }
 
+            // إغلاق السؤال وتحديث سجل الزائر
+            answeredQuestionsMap[selectedBranchIdx].push(qIdx);
+            visitorQuestionCount++;
+
             startThinkingTimer(() => {
-                currentQIdx++;
-                renderGeneralQuestion();
                 isProcessingAction = false;
                 clearHover();
+                renderBranchSelection();
             });
         }
 
@@ -609,7 +760,7 @@
             const countNum = document.getElementById('count-num');
             if (delayBar) delayBar.style.display = 'block';
 
-            let count = 5; 
+            let count = 3; 
             const timerInterval = setInterval(() => {
                 count--;
                 if (countNum) countNum.innerText = count;
@@ -620,48 +771,78 @@
             }, 1000);
         }
 
-        // --- 2. الأمثال والحكم ---
-        const proverbsBank = [
-            "ما طار طير وارتفع إلا كما طار وقع",
-            "من طلب العلا سهر الليالي",
-            "إذا كان الكلام من فضة فالسكوت من ذهب",
-            "الصديق وقت الضيق",
-            "من جد وجد ومن زرع حصد",
-            "لا تؤجل عمل اليوم إلى الغد"
+        // --- 2. بنك 50 مثل وحكمة ---
+        const proverbs50Bank = [
+            "ما طار طير وارتفع إلا كما طار وقع", "من طلب العلا سهر الليالي", "إذا كان الكلام من فضة فالسكوت من ذهب",
+            "الصديق وقت الضيق", "من جد وجد ومن زرع حصد", "لا تؤجل عمل اليوم إلى الغد",
+            "اتق شر من أحسنت إليه", "رب رمية من غير رام", "العلم في الصغر كالنقش على الحجر",
+            "الوقت كالسيف إن لم تقطعه قطعك", "إن لفي خلق الإنسان عبرة", "من تدخل فيما لا يعنيه لقي ما لا يرضيه",
+            "البيوت أسرار والحكمة في الأفعال", "يد واحدة لا تصفق", "اللسان حصانك إن صنته صانك",
+            "مصائب قوم عند قوم فوائد", "طبل تحت المطر لا يخشى البلال", "رب ضارة نافعة",
+            "عصفور في اليد خير من عشرة على الشجرة", "من استعجل الشيء قبل أبانه عوقب بحرمانه", "خير الكلام ما قل ودل",
+            "لا تمدحن امرأ حتى تجربها", "من راقب الناس مات هما", "حبل الكذب قصير",
+            "لكل عالم هفوة ولكل جواد كبوة", "التاج على رؤوس الأصحاء", "أول الغيث قطرة",
+            "الصبر مفتاح الفرج", "على نفسها تجني براقش", "من حفر حفرة لأخيه وقع فيها",
+            "الطيور على أشكالها تقع", "الجار قبل الدار", "الرفيق قبل الطريق",
+            "من كثر كلامه كثر خطؤه", "القناعة كنز لا يفنى", "لا تبصق في البئر فقد تشرب منه",
+            "ما حك جلدك مثل ظفرك", "إذا هبت رياحك فاغتنمها", "من استحيا حرم",
+            "الرضا بالكسير يسير", "في التأني السلامة وفي العجلة الندامة", "الباب الذي يأتيك منه الريح سده واستريح",
+            "اللسان أقطع من السيف", "من خاف سلم", "كما تدين تدان",
+            "الأفعال أبلغ من الأقوال", "الكتاب خير جليس في الزمان", "من كتم سره بلغ مراده",
+            "رب أخ لك لم تلده أمك", "إن غداً لناظره قريب"
         ];
 
-        let visitorProverbs = [];
-        let currentProverbIdx = 0;
-        let selectedProverb = "";
-        let shuffledWords = [];
-        let userArrangedWords = [];
+        let visitorProverbCount = 0;
+        let answeredProverbsList = [];
+        let currentProverbText = "";
+        let currentShuffledWords = [];
+        let currentArrangedWords = [];
 
         function startProverbsGame() {
-            visitorProverbs = [...proverbsBank].sort(() => Math.random() - 0.5).slice(0, 5);
-            currentProverbIdx = 0;
-            loadNextProverb();
+            visitorProverbCount = 0;
+            answeredProverbsList = [];
+            renderProverbsSelection();
         }
 
-        function loadNextProverb() {
-            if (currentProverbIdx >= visitorProverbs.length) {
-                showFinalModal("إنجاز رائع!", `أكملت ترتيب الأمثال بنجاح وحصلت على ${globalScore} نقطة!`);
+        function renderProverbsSelection() {
+            if (visitorProverbCount >= 5) {
+                showFinalModal("إنجاز ممتاز!", `أكملت ترتيب 5 أمثال وحكم بنجاح وحصلت على ${globalScore} نقطة!`);
                 return;
             }
-            selectedProverb = visitorProverbs[currentProverbIdx];
-            shuffledWords = selectedProverb.split(" ").sort(() => Math.random() - 0.5);
-            userArrangedWords = [];
-            renderProverbGame();
+
+            gameStage.innerHTML = `
+                <h2 style="color:var(--gold); margin-bottom:15px;">تحدي الأمثال والحكم (اختر مثل) - ${visitorProverbCount} / 5</h2>
+                <div class="items-selection-grid">
+                    ${proverbs50Bank.map((_, idx) => {
+                        const isDone = answeredProverbsList.includes(idx);
+                        return `<div class="item-select-btn ${isDone ? 'completed' : ''}" data-p-idx="${idx}" onclick="${isDone ? '' : `selectProverbForVisitor(${idx})`}">
+                            ${isDone ? 'مغلق 🔒' : `مثل ${idx + 1}`}
+                        </div>`;
+                    }).join('')}
+                </div>
+            `;
+            speak("اختر رقم المثل لتشيك مدى معرفتك وترتيبه");
         }
 
-        function renderProverbGame() {
+        function selectProverbForVisitor(idx) {
+            currentProverbText = proverbs50Bank[idx];
+            currentShuffledWords = currentProverbText.split(" ").sort(() => Math.random() - 0.5);
+            currentArrangedWords = [];
+            answeredProverbsList.push(idx);
+
+            renderSingleProverbGame();
+        }
+
+        function renderSingleProverbGame() {
             gameStage.innerHTML = `
-                <h3 style="color:var(--gold); margin-bottom:5px;">المثل ${currentProverbIdx + 1} من 5</h3>
-                <h2 style="margin-bottom:10px; color:var(--cyan);">رتب المثل بيدك أو باللمس ببطء:</h2>
+                <h3 style="color:var(--gold); margin-bottom:5px;">رتب المثل بيدك أو بالتأشير ببطء:</h3>
                 <div style="min-height:60px; background:rgba(255,255,255,0.1); border:2px dashed var(--gold); border-radius:15px; padding:15px 30px; font-size:24px; font-weight:bold; margin-bottom:20px; color:var(--gold);">
-                    ${userArrangedWords.join(" ") || "اختر الكلمات بالترتيب..."}
+                    ${currentArrangedWords.join(" ") || "اختر الكلمات بالترتيب..."}
                 </div>
                 <div class="words-container">
-                    ${shuffledWords.map((word, idx) => `<div class="word-btn" data-word-idx="${idx}" onclick="handleWordClick(${idx})">${word}</div>`).join('')}
+                    ${currentShuffledWords.map((word, idx) => `
+                        <div class="word-btn" data-word-idx="${idx}" onclick="handleWordClick(${idx})">${word}</div>
+                    `).join('')}
                 </div>
             `;
         }
@@ -669,32 +850,35 @@
         function handleWordClick(idx) {
             if (isProcessingAction) return;
             const btn = document.querySelector(`.word-btn[data-word-idx="${idx}"]`);
-            if (!btn || btn.classList.contains('selected')) return;
+            if (!btn || btn.classList.contains('disabled')) return;
 
-            userArrangedWords.push(shuffledWords[idx]);
-            btn.classList.add('selected');
-            btn.style.visibility = 'hidden';
-            renderProverbGame();
+            // إخفاء وتعطيل الكلمة مباشرة حتى لا تتكرر
+            btn.classList.add('disabled');
+            currentArrangedWords.push(currentShuffledWords[idx]);
+            
+            renderSingleProverbGame();
 
-            if (userArrangedWords.length === shuffledWords.length) {
+            if (currentArrangedWords.length === currentShuffledWords.length) {
                 isProcessingAction = true;
-                if (userArrangedWords.join(" ") === selectedProverb) {
+                if (currentArrangedWords.join(" ") === currentProverbText) {
                     globalScore += 10;
                     scoreDisplay.innerText = globalScore;
+                    visitorProverbCount++;
                     speak("ممتاز! ترتيب صحيح", () => {
                         setTimeout(() => {
-                            currentProverbIdx++;
-                            loadNextProverb();
                             isProcessingAction = false;
-                        }, 1800);
+                            clearHover();
+                            renderProverbsSelection();
+                        }, 1500);
                     });
                 } else {
-                    speak("حاول مرة أخرى");
+                    speak("ترتيب خاطئ، حاول مجدداً");
                     setTimeout(() => {
-                        userArrangedWords = [];
-                        renderProverbGame();
+                        currentArrangedWords = [];
+                        renderSingleProverbGame();
                         isProcessingAction = false;
-                    }, 2000);
+                        clearHover();
+                    }, 1800);
                 }
             }
         }
@@ -867,24 +1051,43 @@
             }, 1500);
         }
 
-        // --- 6. فك الرمز الأمني ---
+        // --- 6. فك الرمز الأمني المطور والممتع جداً ---
         let secretCode = "";
         let userEnteredCode = "";
+        let codeTimerVal = 30;
+        let codeTimerInterval = null;
 
         function startCodeBreakerGame() {
-            secretCode = Math.floor(1000 + Math.random() * 9000).toString();
+            // رمز سري مكون من 6 أرقام لجعله أكثر صعوبة وتشويقاً
+            secretCode = Math.floor(100000 + Math.random() * 900000).toString();
             userEnteredCode = "";
+            codeTimerVal = 30;
+
+            if (codeTimerInterval) clearInterval(codeTimerInterval);
+
+            codeTimerInterval = setInterval(() => {
+                codeTimerVal--;
+                const timerElem = document.getElementById('code-timer-display');
+                if (timerElem) timerElem.innerText = codeTimerVal;
+
+                if (codeTimerVal <= 0) {
+                    clearInterval(codeTimerInterval);
+                    showFinalModal("انتهى الوقت!", "انتهى الوقت المحدد لإدخال الرمز الأمني، حاول مجدداً!");
+                }
+            }, 1000);
+
             renderCodeBreaker();
-            speak("قم بإدخال الرمز السري المكون من أربعة أرقام");
+            speak("تحذير أمني! قم بإدخال الرمز المكون من 6 أرقام قبل انتهائ الوقت!");
         }
 
         function renderCodeBreaker() {
             gameStage.innerHTML = `
-                <h2 style="color:var(--cyan); margin-bottom:10px;">🔐 تحدي اختراق الرمز السري</h2>
-                <p style="font-size:20px; color:#ccc;">الرمز المطلوب أدناه:</p>
+                <h2 style="color:var(--cyan); margin-bottom:5px;">🚨 اختراق النظام الأمني الصعب</h2>
+                <div class="code-timer">الوقت المتبقي: <span id="code-timer-display">${codeTimerVal}</span> ثانية</div>
+                <p style="font-size:18px; color:#ccc;">الرمز المطلوب التشفير به:</p>
                 <div class="code-display">${secretCode}</div>
-                <div style="font-size:28px; margin-bottom:15px; color:var(--green); letter-spacing:8px; min-height:40px;">
-                    ${userEnteredCode.padEnd(4, '_')}
+                <div style="font-size:32px; margin-bottom:10px; color:var(--green); letter-spacing:10px; min-height:45px;">
+                    ${userEnteredCode.padEnd(6, '_')}
                 </div>
                 <div class="keypad-grid">
                     ${[1,2,3,4,5,6,7,8,9].map(num => `<div class="key-btn" data-key="${num}" onclick="handleKeypadClick('${num}')">${num}</div>`).join('')}
@@ -893,26 +1096,27 @@
         }
 
         function handleKeypadClick(num) {
-            if (isProcessingAction || userEnteredCode.length >= 4) return;
+            if (isProcessingAction || userEnteredCode.length >= 6) return;
             userEnteredCode += num;
             renderCodeBreaker();
 
-            if (userEnteredCode.length === 4) {
+            if (userEnteredCode.length === 6) {
                 isProcessingAction = true;
                 if (userEnteredCode === secretCode) {
-                    globalScore += 25;
+                    if (codeTimerInterval) clearInterval(codeTimerInterval);
+                    globalScore += 50;
                     scoreDisplay.innerText = globalScore;
-                    speak("تم اختراق النظام بنجاح!", () => {
-                        showFinalModal("عبقري التشفير!", "نجحت في إدخال الرقم السري واختراق النظام!");
+                    speak("تم اختراق النظام بنجاح خارق!", () => {
+                        showFinalModal("عبقري الاختراق!", "نجحت في تفكيك الرمز الأمني المعقد بنجاح!");
                         isProcessingAction = false;
                     });
                 } else {
-                    speak("رمز خاطئ، حاول مجدداً");
+                    speak("رمز خاطئ! حاول مجدداً بسرعة");
                     setTimeout(() => {
                         userEnteredCode = "";
                         renderCodeBreaker();
                         isProcessingAction = false;
-                    }, 1200);
+                    }, 1000);
                 }
             }
         }
@@ -943,6 +1147,44 @@
                     }
                 });
             } else if (currentGame === 'quiz_general') {
+                const branchCards = document.querySelectorAll('.branch-card');
+                branchCards.forEach(card => {
+                    const rect = card.getBoundingClientRect();
+                    if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+                        if (currentHoveredElement !== card) {
+                            clearHover();
+                            currentHoveredElement = card;
+                            card.classList.add('hovered');
+                            handPointer.classList.add('loading');
+
+                            hoverTimer = setTimeout(() => {
+                                const bIdx = parseInt(card.getAttribute('data-b-idx'));
+                                selectBranch(bIdx);
+                                clearHover();
+                            }, HOVER_DELAY);
+                        }
+                    }
+                });
+
+                const itemBtns = document.querySelectorAll('.item-select-btn:not(.completed)');
+                itemBtns.forEach(btn => {
+                    const rect = btn.getBoundingClientRect();
+                    if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+                        if (currentHoveredElement !== btn) {
+                            clearHover();
+                            currentHoveredElement = btn;
+                            btn.classList.add('hovered');
+                            handPointer.classList.add('loading');
+
+                            hoverTimer = setTimeout(() => {
+                                const qIdx = parseInt(btn.getAttribute('data-q-idx'));
+                                selectQuestionForVisitor(qIdx);
+                                clearHover();
+                            }, HOVER_DELAY);
+                        }
+                    }
+                });
+
                 const options = document.querySelectorAll('.option-btn');
                 options.forEach(opt => {
                     const rect = opt.getBoundingClientRect();
@@ -954,18 +1196,39 @@
                             handPointer.classList.add('loading');
 
                             hoverTimer = setTimeout(() => {
-                                const selectedIdx = parseInt(opt.getAttribute('data-idx'));
-                                handleOptionClick(selectedIdx);
+                                const selectedOptIdx = parseInt(opt.getAttribute('data-opt-idx'));
+                                const activeQIdx = parseInt(document.querySelector('.question-box span').innerText.match(/\d+/)[0]) - 1;
+                                handleGeneralAnswer(activeQIdx, selectedOptIdx);
+                                clearHover();
                             }, HOVER_DELAY);
                         }
                     }
                 });
             } else if (currentGame === 'proverbs') {
-                const wordBtns = document.querySelectorAll('.word-btn');
+                const itemBtns = document.querySelectorAll('.item-select-btn:not(.completed)');
+                itemBtns.forEach(btn => {
+                    const rect = btn.getBoundingClientRect();
+                    if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+                        if (currentHoveredElement !== btn) {
+                            clearHover();
+                            currentHoveredElement = btn;
+                            btn.classList.add('hovered');
+                            handPointer.classList.add('loading');
+
+                            hoverTimer = setTimeout(() => {
+                                const pIdx = parseInt(btn.getAttribute('data-p-idx'));
+                                selectProverbForVisitor(pIdx);
+                                clearHover();
+                            }, HOVER_DELAY);
+                        }
+                    }
+                });
+
+                const wordBtns = document.querySelectorAll('.word-btn:not(.disabled)');
                 wordBtns.forEach(btn => {
                     const rect = btn.getBoundingClientRect();
                     if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
-                        if (currentHoveredElement !== btn && !btn.classList.contains('selected')) {
+                        if (currentHoveredElement !== btn) {
                             clearHover();
                             currentHoveredElement = btn;
                             btn.classList.add('hovered');
@@ -1031,17 +1294,21 @@
 
         function resetToMenu() {
             if (catcherInterval) clearInterval(catcherInterval);
+            if (codeTimerInterval) clearInterval(codeTimerInterval);
             try { bgMusic.pause(); bgMusic.currentTime = 0; } catch(e){}
+
+            // إلغاء أي صيد صوتي مباشر ومنع التحدث الفوري عند العودة
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
 
             currentGame = null;
             hasGreetedVisitor = false;
             isProcessingAction = false;
-            
+            lastExitTime = Date.now(); // تسجيل وقت الخروج لضمان انتظار دقيقتين قبل الترحيب القادم
+
             resultModal.classList.remove('show');
             gameStage.style.display = 'none';
             visitorCanvas.style.display = 'none';
 
-            // إظهار الروبوت مجدداً في القائمة الرئيسية
             robotContainer.style.opacity = '1';
 
             menuZones.classList.remove('show');
