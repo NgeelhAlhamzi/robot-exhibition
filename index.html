@@ -314,6 +314,23 @@
     <div id="game-stage"></div>
 
     <script>
+        // إذن تشغيل الصوت من المتصفح عند أول تفاعل للمستخدم
+        let audioUnlocked = false;
+        function unlockAudio() {
+            if (!audioUnlocked) {
+                audioUnlocked = true;
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.resume();
+                }
+                const bgMusic = document.getElementById('bg-music');
+                if (bgMusic) {
+                    bgMusic.play().then(() => bgMusic.pause()).catch(() => {});
+                }
+            }
+        }
+        window.addEventListener('click', unlockAudio, { once: true });
+        window.addEventListener('touchstart', unlockAudio, { once: true });
+
         const videoElement = document.getElementById('webcam');
         const visitorCanvas = document.getElementById('visitor-canvas');
         const canvasCtx = visitorCanvas.getContext('2d');
@@ -337,31 +354,31 @@
         let lastExitTime = 0;
         const ROBOT_WELCOME_COOLDOWN = 120000;
 
-        // Three.js
+        // Three.js Setup
         const robotScene = new THREE.Scene();
         const robotCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         const robotRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
         robotRenderer.setSize(window.innerWidth, window.innerHeight);
         robotContainer.appendChild(robotRenderer.domElement);
 
-        robotScene.add(new THREE.AmbientLight(0xffffff, 1.5));
-        const pLight = new THREE.PointLight(0x00f3ff, 3, 20); pLight.position.set(0, 5, 5); robotScene.add(pLight);
+        robotScene.add(new THREE.AmbientLight(0xffffff, 1.8));
+        const pLight = new THREE.PointLight(0x00f3ff, 3.5, 25); pLight.position.set(0, 5, 8); robotScene.add(pLight);
 
         const loader = new THREE.GLTFLoader();
         let samRobot = null;
         let mixer = null;
         const clock = new THREE.Clock();
 
-        // قربنا الكاميرا ليكون الروبوت أكبر في الشاشة
-        robotCamera.position.set(0, 0, 7);
+        // إبعاد الكاميرا قليلاً للأعلى والخلف ليكون الروبوت كاملاً داخل الشاشة ورأسه متناسق
+        robotCamera.position.set(0, 0.5, 9);
 
         loader.load('./marin.glb', function (gltf) {
             samRobot = gltf.scene;
             
-            // تكبير المقياس وضبط الدوران لحل مشكلة المقلوب والحجم الصغير
-            samRobot.scale.set(2.5, 2.5, 2.5);
-            samRobot.rotation.set(0, 0, 0); 
-            samRobot.position.set(0, -2.2, 0);
+            // ضبط الحجم وتدوير الروبوت 180 درجة (Math.PI) ليواجه المستخدم تماماً
+            samRobot.scale.set(2.2, 2.2, 2.2);
+            samRobot.rotation.set(0, Math.PI, 0); 
+            samRobot.position.set(0, -3.2, 0);
 
             if (gltf.animations && gltf.animations.length > 0) {
                 mixer = new THREE.AnimationMixer(samRobot);
@@ -378,8 +395,9 @@
             const delta = clock.getDelta();
             if (mixer) mixer.update(delta);
             if (samRobot) {
-                samRobot.position.y = -2.2 + Math.sin(Date.now() * 0.0015) * 0.08;
-                const targetRotY = ((lastPointerX / window.innerWidth) - 0.5) * 0.3;
+                samRobot.position.y = -3.2 + Math.sin(Date.now() * 0.0015) * 0.08;
+                // حركة خفيفة لالتفات الروبوت مع مؤشر اليد
+                const targetRotY = Math.PI + ((lastPointerX / window.innerWidth) - 0.5) * 0.3;
                 samRobot.rotation.y = targetRotY;
             }
             robotRenderer.render(robotScene, robotCamera);
@@ -603,7 +621,7 @@
                     { q: "ما هي عاصمة دولة الإمارات؟", options: ["دبي", "أبوظبي", "الشارقة", "العين"], ans: 1 },
                     { q: "ما أطول نهر في العالم؟", options: ["نهر النيل", "نهر الأمازون", "نهر الميسيسيبي", "نهر اليانغتسي"], ans: 0 },
                     { q: "ما هي أكبر قارة في العالم من حيث المساحة؟", options: ["آسيا", "أفريقيا", "أوروبا", "أمريكا الشمالية"], ans: 0 },
-                    { q: "ما هي أصفر دولة في العالم مساحة؟", options: ["الفاتيكان", "موناكو", "ملاوي", "البحرين"], ans: 0 },
+                    { q: "ما هي أصغر دولة في العالم مساحة؟", options: ["الفاتيكان", "موناكو", "ملاوي", "البحرين"], ans: 0 },
                     { q: "ما هي المحيط الأكبر في العالم؟", options: ["المحيط الهادئ", "المحيط الأطلسي", "المحيط الهندي", "المحيط المتجمد"], ans: 0 },
                     { q: "ما هي عاصمة المملكة العربية السعودية؟", options: ["الرياض", "جدة", "الدمام", "مكة"], ans: 0 },
                     { q: "في أي قارة تقع دولة البرازيل؟", options: ["أمريكا الجنوبية", "أمريكا الشمالية", "أفريقيا", "آسيا"], ans: 0 },
@@ -619,7 +637,7 @@
                     { q: "ما لسان العرب وأفصح لغة في التاريخ؟", options: ["اللغة العربية", "اللغة الإنجليزية", "اللغة اللاتينية", "اللغة الفارسية"], ans: 0 },
                     { q: "ما هي أطول سورة في القرآن الكريم؟", options: ["سورة البقرة", "سورة آل عمران", "سورة النساء", "سورة المائدة"], ans: 0 },
                     { q: "كم عدد ألوان طيف قزح؟", options: ["7", "6", "8", "5"], ans: 0 },
-                    { q: "ما الحيوان الملقب بسفينة الصحراء؟", options: ["الفيلم", "الجمل", "الحصان", "الأسد"], ans: 1 },
+                    { q: "ما الحيوان الملقب بسفينة الصحراء؟", options: ["الفيل", "الجمل", "الحصان", "الأسد"], ans: 1 },
                     { q: "ما العملة الرسمية في اليابان؟", options: ["الين", "الدولار", "اليورو", "الوان"], ans: 0 },
                     { q: "من هو واضع علم النحو العربي؟", options: ["أبو الأسود الدؤلي", "سيبويه", "الخليل بن أحمد", "الفراهيدي"], ans: 0 },
                     { q: "ما أسرع الكائنات الحية برية؟", options: ["الفهد", "الأسد", "الغزال", "النمر"], ans: 0 },
