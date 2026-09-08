@@ -45,12 +45,7 @@
         video#webcam { display: none; }
 
         #visitor-canvas {
-            position: absolute; bottom: 15px; left: 20px;
-            width: 220px; height: 320px; z-index: 10;
-            pointer-events: none; display: none;
-            transform: scaleX(-1); object-fit: contain;
-            background: transparent !important; border: none !important;
-            filter: drop-shadow(0 5px 15px rgba(0,0,0,0.7));
+            display: none !important;
         }
 
         #robot-container {
@@ -414,16 +409,38 @@
             }
         }
 
+        // تعديل نبرة الصوت لتكون صوت أنثوي وتحسين الأداء
         function speak(text, callback) {
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
+                unlockAudio();
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'ar-SA';
-                utterance.rate = 0.85; 
-                utterance.pitch = 1.0;
+                utterance.rate = 0.9; 
+                utterance.pitch = 1.25; // رفع طبقة الصوت ليعطي خامة أنثوية ألطف
+
+                const voices = window.speechSynthesis.getVoices();
+                const femaleVoice = voices.find(v => v.lang.includes('ar') && (
+                    v.name.toLowerCase().includes('female') || 
+                    v.name.toLowerCase().includes('zayd') === false ||
+                    v.name.toLowerCase().includes('mary') ||
+                    v.name.toLowerCase().includes('salma') ||
+                    v.name.toLowerCase().includes('laila') ||
+                    v.name.toLowerCase().includes('zeina')
+                ));
+                if (femaleVoice) {
+                    utterance.voice = femaleVoice;
+                }
+
                 if (callback) utterance.onend = callback;
                 window.speechSynthesis.speak(utterance);
             } else if (callback) callback();
+        }
+
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = () => {
+                window.speechSynthesis.getVoices();
+            };
         }
 
         function runRobotSpeechSequence() {
@@ -438,7 +455,7 @@
                 if (index < robotSpeechParts.length) {
                     speak(robotSpeechParts[index], () => {
                         index++;
-                        setTimeout(speakNextPart, 800);
+                        setTimeout(speakNextPart, 500);
                     });
                 } else {
                     menuZones.classList.add('show');
@@ -460,15 +477,7 @@
         selfieSegmentation.setOptions({ modelSelection: 1 });
 
         selfieSegmentation.onResults((results) => {
-            if (currentGame === null) return;
-            visitorCanvas.width = results.image.width;
-            visitorCanvas.height = results.image.height;
-            canvasCtx.save();
-            canvasCtx.clearRect(0, 0, visitorCanvas.width, visitorCanvas.height);
-            canvasCtx.drawImage(results.segmentationMask, 0, 0, visitorCanvas.width, visitorCanvas.height);
-            canvasCtx.globalCompositeOperation = 'source-in';
-            canvasCtx.drawImage(results.image, 0, 0, visitorCanvas.width, visitorCanvas.height);
-            canvasCtx.restore();
+            // إلغاء رسم صورة الزائر على الـ canvas لحماية الخصوصية وإخفائها كلياً
         });
 
         const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
@@ -487,20 +496,17 @@
                 handPointer.style.top = `${lastPointerY}px`;
                 
                 const now = Date.now();
-                if (!hasGreetedVisitor && currentGame === null && (now - lastExitTime >= ROBOT_WELCOME_COOLDOWN)) {
+                // التحدث فور الإشارة باليد على الكاميرا
+                if (!hasGreetedVisitor && currentGame === null) {
                     hasGreetedVisitor = true;
                     runRobotSpeechSequence();
-                } else if (!hasGreetedVisitor && currentGame === null) {
+                } else if (currentGame === null) {
                     menuZones.classList.add('show');
                 }
                 checkCollisions(lastPointerX, lastPointerY);
             } else {
                 handPointer.style.display = 'none';
-                const now = Date.now();
-                if (!hasGreetedVisitor && currentGame === null && (now - lastExitTime >= ROBOT_WELCOME_COOLDOWN)) {
-                    hasGreetedVisitor = true;
-                    runRobotSpeechSequence();
-                } else if (!hasGreetedVisitor && currentGame === null) {
+                if (!hasGreetedVisitor && currentGame === null) {
                     menuZones.classList.add('show');
                 }
             }
@@ -570,7 +576,7 @@
             scoreDisplay.innerText = globalScore;
             menuZones.classList.remove('show');
             try { bgMusic.play(); } catch(e){}
-            visitorCanvas.style.display = 'block';
+            visitorCanvas.style.display = 'none';
             gameStage.style.display = 'flex';
 
             robotContainer.style.opacity = '0';
@@ -1316,9 +1322,6 @@
         const camera = new Camera(videoElement, {
             onFrame: async () => { 
                 await hands.send({ image: videoElement });
-                if (currentGame !== null) {
-                    await selfieSegmentation.send({ image: videoElement });
-                }
             },
             width: 1280, height: 720
         });
