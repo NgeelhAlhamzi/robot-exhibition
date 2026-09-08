@@ -117,18 +117,17 @@
         }
 
         #hand-pointer {
-            position: absolute; width: 45px; height: 45px; border: 3px solid var(--cyan);
+            position: absolute; width: 42px; height: 42px; border: 3px solid var(--cyan);
             border-radius: 50%; background: rgba(0, 243, 255, 0.3);
             box-shadow: 0 0 25px var(--cyan); transform: translate(-50%, -50%);
             z-index: 999; pointer-events: none; display: none;
             transition: transform 0.1s ease-out;
         }
 
-        /* تحسين تحريك حلقة الدوران إلى 5 ثوانٍ */
         #hand-pointer.loading::after {
-            content: ''; position: absolute; top: -6px; left: -6px; right: -6px; bottom: -6px;
-            border: 4px solid transparent; border-top-color: var(--gold); border-radius: 50%;
-            opacity: 1; animation: spin 5s linear infinite;
+            content: ''; position: absolute; top: -5px; left: -5px; right: -5px; bottom: -5px;
+            border: 3px solid transparent; border-top-color: var(--gold); border-radius: 50%;
+            opacity: 1; animation: spin 1.8s linear infinite;
         }
 
         @keyframes spin { 100% { transform: rotate(360deg); } }
@@ -180,19 +179,6 @@
             cursor: pointer; transition: all 0.3s; color: #fff;
         }
         .word-btn:hover, .word-btn.hovered { transform: scale(1.1); border-color: var(--cyan); }
-        
-        .word-btn.disabled {
-            visibility: hidden !important;
-            pointer-events: none !important;
-            opacity: 0 !important;
-        }
-
-        .reset-proverb-btn {
-            margin-top: 15px; background: rgba(239, 68, 68, 0.2); border: 2px solid var(--red);
-            padding: 10px 25px; border-radius: 12px; font-size: 18px; font-weight: bold;
-            color: #fff; cursor: pointer; transition: all 0.3s; display: inline-flex; align-items: center; gap: 8px;
-        }
-        .reset-proverb-btn:hover, .reset-proverb-btn.hovered { background: var(--red); color: #fff; transform: scale(1.05); }
 
         .memory-grid { display: grid; grid-template-columns: repeat(4, 120px); gap: 15px; }
         .memory-card {
@@ -219,13 +205,13 @@
         }
         .xo-cell:hover, .xo-cell.hovered { background: rgba(0, 243, 255, 0.25); border-color: var(--gold); }
 
+        /* لعبة تفكيك الرموز */
         .code-display {
             font-size: 42px; font-weight: bold; color: var(--gold);
             letter-spacing: 12px; margin: 20px 0; background: rgba(0,0,0,0.5);
             padding: 15px 40px; border-radius: 15px; border: 2px solid var(--gold);
             box-shadow: 0 0 25px var(--gold);
         }
-        /* تحسين لوحة الأرقام لإتاحة الرقم 0 بشكل متناسق */
         .keypad-grid {
             display: grid; grid-template-columns: repeat(3, 90px); gap: 15px; margin-top: 15px;
         }
@@ -236,9 +222,6 @@
             cursor: pointer; transition: all 0.2s; color: #fff;
         }
         .key-btn:hover, .key-btn.hovered { background: var(--cyan); color: #000; transform: scale(1.1); }
-        .key-btn-clear {
-            background: rgba(239, 68, 68, 0.2); border-color: var(--red);
-        }
     </style>
 </head>
 <body>
@@ -285,7 +268,7 @@
         </div>
         <div class="game-card" data-id="proverbs" onclick="selectGame('proverbs')">
             <div class="card-icon"><i class="fa-solid fa-book-open"></i></div>
-            <span>أمثال وحكم يمنية</span>
+            <span>أمثال وحكم</span>
         </div>
         <div class="game-card" data-id="memory" onclick="selectGame('memory')">
             <div class="card-icon"><i class="fa-solid fa-brain"></i></div>
@@ -301,7 +284,7 @@
         </div>
         <div class="game-card" data-id="code_breaker" onclick="selectGame('code_breaker')">
             <div class="card-icon"><i class="fa-solid fa-key"></i></div>
-            <span>اختراق القفل الخفي</span>
+            <span>فك الرمز الأمني</span>
         </div>
     </div>
 
@@ -327,9 +310,9 @@
         let hasGreetedVisitor = false;
         let isProcessingAction = false; 
 
-        const HOVER_DELAY = 5000; 
+        const HOVER_DELAY = 1800; 
 
-        // Three.js
+        // الثلاثي الأبعاد ( Three.js )
         const robotScene = new THREE.Scene();
         const robotCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         const robotRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
@@ -344,12 +327,19 @@
         let mixer = null;
         const clock = new THREE.Clock();
 
+        // موضع الكاميرا لرؤية الجسم كاملاً
         robotCamera.position.set(0, 0, 10);
 
         loader.load('./marin.glb', function (gltf) {
             samRobot = gltf.scene;
+            
+            // تم التكبير إلى 0.55 ليصبح بحجم واضح ومثالي
             samRobot.scale.set(0.55, 0.55, 0.55);
+            
+            // إنزاله لأسفل قليلاً ليتناسب الحجم المكبر مع الشاشة
             samRobot.position.set(0, -2.6, 0);
+
+            // اتجاه الروبوت للأمام نحو الشاشة
             samRobot.rotation.y = 0;
 
             if (gltf.animations && gltf.animations.length > 0) {
@@ -358,6 +348,7 @@
                 action.play();
             }
             robotScene.add(samRobot);
+            console.log("تم تحميل ملف الروبوت بنجاح");
         }, undefined, function (error) { 
             console.error("خطأ في تحميل ملف الروبوت marin.glb:", error); 
         });
@@ -367,6 +358,7 @@
             const delta = clock.getDelta();
             if (mixer) mixer.update(delta);
             if (samRobot) {
+                // حركات خفيفة للطفو والتفاعل مع حركة المؤشر
                 samRobot.position.y = -2.6 + Math.sin(Date.now() * 0.0015) * 0.08;
                 const targetRotY = ((lastPointerX / window.innerWidth) - 0.5) * 0.3;
                 samRobot.rotation.y += (targetRotY - samRobot.rotation.y) * 0.05;
@@ -401,7 +393,7 @@
             const robotSpeechParts = [
                 "أهلاً وسهلاً بك في المعرض التفاعلي الذكي. أنا الروبوت مارين، مرشدك اليوم.",
                 "تم تصميم هذا البرنامج لتقديم تجربة تجمع بين المعرفة والتسلية والتفاعل الذكي.",
-                "الآن تفضل باختيار اللعبة التي تريدها، إما عن طريق اللمس المباشر على الشاشة، أو عبر الاستشعار والتأشير بيدك لمدة 5 ثوانٍ."
+                "الآن تفضل باختيار اللعبة التي تريدها، إما عن طريق اللمس المباشر على الشاشة، أو عبر الاستشعار والتأشير بيدك عن بعد."
             ];
 
             let index = 0;
@@ -464,7 +456,6 @@
                 checkCollisions(lastPointerX, lastPointerY);
             } else {
                 handPointer.style.display = 'none';
-                clearHover();
                 if (!hasGreetedVisitor && currentGame === null) {
                     hasGreetedVisitor = true;
                     runRobotSpeechSequence();
@@ -526,7 +517,7 @@
         function clearHover() {
             if (hoverTimer) clearTimeout(hoverTimer);
             handPointer.classList.remove('loading');
-            document.querySelectorAll('.game-card, .option-btn, .memory-card, .xo-cell, .word-btn, .top-btn, .key-btn, .reset-proverb-btn').forEach(c => c.classList.remove('hovered'));
+            document.querySelectorAll('.game-card, .option-btn, .memory-card, .xo-cell, .word-btn, .top-btn, .key-btn').forEach(c => c.classList.remove('hovered'));
             currentHoveredElement = null;
         }
 
@@ -539,6 +530,7 @@
             visitorCanvas.style.display = 'block';
             gameStage.style.display = 'flex';
 
+            // إخفاء الروبوت أثناء اللعب
             robotContainer.style.opacity = '0';
 
             if (id === 'quiz_general') startGeneralQuiz();
@@ -549,23 +541,14 @@
             else if (id === 'code_breaker') startCodeBreakerGame();
         }
 
-        // --- 1. معلومات عامة (توسيع بنك الأسئلة + استبعاد عواصم الإمارات واليمن والسعودية) ---
+        // --- 1. معلومات عامة ---
         const generalQuestionsBank = [
-            { q: "ما هي عاصمة جمهورية مصر العربية؟", options: ["القاهرة", "الإسكندرية", "الجيزة", "أسوان"], ans: 0 },
-            { q: "ما هي عاصمة دولة فرنسا؟", options: ["ليون", "باريس", "مارسيليا", "تولوز"], ans: 1 },
+            { q: "ما هي عاصمة جمهورية اليمن؟", options: ["صنعاء", "عدن", "تعز", "المكلا"], ans: 0 },
             { q: "ما هي سرعة الضوء في الفراغ تقريباً؟", options: ["300,000 كم/ث", "150,000 كم/ث", "500,000 كم/ث", "1,000,000 كم/ث"], ans: 0 },
             { q: "ما هو العنصر الكيميائي الذي رمزه (O)؟", options: ["الهيدروجين", "الأكسجين", "النيتروجين", "الحديد"], ans: 1 },
             { q: "ما هو حاصل ضرب 12 × 12؟", options: ["124", "144", "164", "184"], ans: 1 },
-            { q: "ما هو أكبر كوكب في المجموعة الشمسية؟", options: ["الأرض", "المريخ", "المشتري", "زحل"], ans: 2 },
-            { q: "ما هي عاصمة دولة اليابان؟", options: ["أوساكا", "طوكيو", "كيوتو", "هيروشيما"], ans: 1 },
-            { q: "ما هو أطول نهر في العالم؟", options: ["نهر النيل", "نهر الأمازون", "نهر الرافدين", "نهر الميسيسيبي"], ans: 0 },
-            { q: "كم عدد قارات العالم؟", options: ["5", "6", "7", "8"], ans: 2 },
-            { q: "ما هي عاصمة دولة قطر؟", options: ["الدوحة", "الريان", "الوكرة", "خور فكان"], ans: 0 },
-            { q: "ما هو أسرع كائن حي على وجه الأرض؟", options: ["الفهد", "صقر الشاهين", "الأسد", "الغزال"], ans: 1 },
-            { q: "أي المعادن التالية يمتلك أعلى موصلية للكهرباء؟", options: ["الذهب", "النحاس", "الفيض/الفيضة", "الفضة"], ans: 3 },
-            { q: "كم عدد عضلة قلب الإنسان؟", options: ["عضلة واحدة", "عضلتان", "ثلاث عضلات", "أربع عضلات"], ans: 0 },
-            { q: "ما هي عاصمة المملكة المغربية؟", options: ["الدار البيضاء", "الرباط", "فاس", "مراكش"], ans: 1 },
-            { q: "ما هي الوحدة الأساسية لقياس القوة في الفيزياء؟", options: ["الجول", "النيوتن", "الوات", "الباسكال"], ans: 1 }
+            { q: "ما هي عاصمة دولة الإمارات العربية المتحدة؟", options: ["دبي", "أبوظبي", "الشارقة", "العين"], ans: 1 },
+            { q: "ما هو أكبر كوكب في المجموعة الشمسية؟", options: ["الأرض", "المريخ", "المشتري", "زحل"], ans: 2 }
         ];
 
         let visitorQuestions = [];
@@ -637,14 +620,14 @@
             }, 1000);
         }
 
-        // --- 2. الأمثال والحكم اليمنية ---
+        // --- 2. الأمثال والحكم ---
         const proverbsBank = [
-            "إذا سلم العود فالحطب كثير",
-            "ما يقطع الراس إلا من ركبه",
-            "من كثر كلامه كثر ملامه",
-            "الصديق وقت الضيق",
+            "ما طار طير وارتفع إلا كما طار وقع",
             "من طلب العلا سهر الليالي",
-            "من جد وجد ومن زرع حصد"
+            "إذا كان الكلام من فضة فالسكوت من ذهب",
+            "الصديق وقت الضيق",
+            "من جد وجد ومن زرع حصد",
+            "لا تؤجل عمل اليوم إلى الغد"
         ];
 
         let visitorProverbs = [];
@@ -652,7 +635,6 @@
         let selectedProverb = "";
         let shuffledWords = [];
         let userArrangedWords = [];
-        let disabledIndices = [];
 
         function startProverbsGame() {
             visitorProverbs = [...proverbsBank].sort(() => Math.random() - 0.5).slice(0, 5);
@@ -668,46 +650,31 @@
             selectedProverb = visitorProverbs[currentProverbIdx];
             shuffledWords = selectedProverb.split(" ").sort(() => Math.random() - 0.5);
             userArrangedWords = [];
-            disabledIndices = [];
             renderProverbGame();
         }
 
         function renderProverbGame() {
             gameStage.innerHTML = `
                 <h3 style="color:var(--gold); margin-bottom:5px;">المثل ${currentProverbIdx + 1} من 5</h3>
-                <h2 style="margin-bottom:10px; color:var(--cyan);">رتب المثل بثبات باللمس أو بالتأشير لمدة 5 ثوانٍ:</h2>
-                <div style="min-height:65px; background:rgba(255,255,255,0.1); border:2px dashed var(--gold); border-radius:15px; padding:15px 30px; font-size:24px; font-weight:bold; margin-bottom:10px; color:var(--gold); display:flex; align-items:center; justify-content:center;">
+                <h2 style="margin-bottom:10px; color:var(--cyan);">رتب المثل بيدك أو باللمس ببطء:</h2>
+                <div style="min-height:60px; background:rgba(255,255,255,0.1); border:2px dashed var(--gold); border-radius:15px; padding:15px 30px; font-size:24px; font-weight:bold; margin-bottom:20px; color:var(--gold);">
                     ${userArrangedWords.join(" ") || "اختر الكلمات بالترتيب..."}
                 </div>
-                ${userArrangedWords.length > 0 ? `
-                    <div class="reset-proverb-btn" id="reset-words-btn" onclick="resetProverbSelection()">
-                        <i class="fa-solid fa-rotate-right"></i> تراجع / إعادة اختيار الكلمات
-                    </div>
-                ` : ''}
                 <div class="words-container">
-                    ${shuffledWords.map((word, idx) => `
-                        <div class="word-btn ${disabledIndices.includes(idx) ? 'disabled' : ''}" data-word-idx="${idx}" onclick="handleWordClick(${idx})">
-                            ${word}
-                        </div>
-                    `).join('')}
+                    ${shuffledWords.map((word, idx) => `<div class="word-btn" data-word-idx="${idx}" onclick="handleWordClick(${idx})">${word}</div>`).join('')}
                 </div>
             `;
         }
 
-        function resetProverbSelection() {
-            userArrangedWords = [];
-            disabledIndices = [];
-            renderProverbGame();
-            clearHover();
-        }
-
         function handleWordClick(idx) {
-            if (isProcessingAction || disabledIndices.includes(idx)) return;
+            if (isProcessingAction) return;
+            const btn = document.querySelector(`.word-btn[data-word-idx="${idx}"]`);
+            if (!btn || btn.classList.contains('selected')) return;
 
-            disabledIndices.push(idx);
             userArrangedWords.push(shuffledWords[idx]);
+            btn.classList.add('selected');
+            btn.style.visibility = 'hidden';
             renderProverbGame();
-            clearHover();
 
             if (userArrangedWords.length === shuffledWords.length) {
                 isProcessingAction = true;
@@ -722,9 +689,10 @@
                         }, 1800);
                     });
                 } else {
-                    speak("ترتيب خاطئ، جرب مرة أخرى");
+                    speak("حاول مرة أخرى");
                     setTimeout(() => {
-                        resetProverbSelection();
+                        userArrangedWords = [];
+                        renderProverbGame();
                         isProcessingAction = false;
                     }, 2000);
                 }
@@ -899,64 +867,43 @@
             }, 1500);
         }
 
-        // --- 6. لعبة القفل الخفي / الرمز الخفي (معدّلة ومضاف لها الرقم 0 ووضعين للتحدي) ---
+        // --- 6. فك الرمز الأمني ---
         let secretCode = "";
         let userEnteredCode = "";
-        let isBlindMode = false; // هل الرمز خفي أم ظاهر لللاعب
 
         function startCodeBreakerGame() {
-            // توليد رمز مكون من 4 أرقام تحتوي على الصفر والأرقام من 0 إلى 9
-            secretCode = Array.from({length: 4}, () => Math.floor(Math.random() * 10)).join('');
+            secretCode = Math.floor(1000 + Math.random() * 9000).toString();
             userEnteredCode = "";
-            isBlindMode = Math.random() > 0.5; // التنويع عشوائياً بين إظهار الرقم أو جعله سرياً للتحذير والتخمين
             renderCodeBreaker();
-            
-            if(isBlindMode) {
-                speak("خمن الرمز السري الخفي المكون من أربعة أرقام!");
-            } else {
-                speak("قم بإدخال الرمز السري المعروض أمامك على الشاشة");
-            }
+            speak("قم بإدخال الرمز السري المكون من أربعة أرقام");
         }
 
         function renderCodeBreaker() {
             gameStage.innerHTML = `
-                <h2 style="color:var(--cyan); margin-bottom:10px;">🔐 اختراق القفل الخفي</h2>
-                <p style="font-size:20px; color:#ccc;">${isBlindMode ? "الرمز خفي! خمن الأرقام الأربعة:" : "أدخل الرمز المطلوب أدناه:"}</p>
-                <div class="code-display">${isBlindMode ? "🔒 🔒 🔒 🔒" : secretCode}</div>
+                <h2 style="color:var(--cyan); margin-bottom:10px;">🔐 تحدي اختراق الرمز السري</h2>
+                <p style="font-size:20px; color:#ccc;">الرمز المطلوب أدناه:</p>
+                <div class="code-display">${secretCode}</div>
                 <div style="font-size:28px; margin-bottom:15px; color:var(--green); letter-spacing:8px; min-height:40px;">
                     ${userEnteredCode.padEnd(4, '_')}
                 </div>
                 <div class="keypad-grid">
                     ${[1,2,3,4,5,6,7,8,9].map(num => `<div class="key-btn" data-key="${num}" onclick="handleKeypadClick('${num}')">${num}</div>`).join('')}
-                    <div class="key-btn key-btn-clear" data-key="clear" onclick="handleKeypadClick('clear')"><i class="fa-solid fa-backspace"></i></div>
-                    <div class="key-btn" data-key="0" onclick="handleKeypadClick('0')">0</div>
-                    <div class="key-btn" style="visibility:hidden;"></div>
                 </div>
             `;
         }
 
         function handleKeypadClick(num) {
-            if (isProcessingAction) return;
-
-            if (num === 'clear') {
-                if (userEnteredCode.length > 0) {
-                    userEnteredCode = userEnteredCode.slice(0, -1);
-                    renderCodeBreaker();
-                }
-                return;
-            }
-
-            if (userEnteredCode.length >= 4) return;
+            if (isProcessingAction || userEnteredCode.length >= 4) return;
             userEnteredCode += num;
             renderCodeBreaker();
 
             if (userEnteredCode.length === 4) {
                 isProcessingAction = true;
                 if (userEnteredCode === secretCode) {
-                    globalScore += isBlindMode ? 35 : 20;
+                    globalScore += 25;
                     scoreDisplay.innerText = globalScore;
-                    speak("تم اختراق النظام وفك القفل بنجاح!", () => {
-                        showFinalModal("عبقري التشفير!", "نجحت في فك الرمز الخفي واختراق القفل بنجاح!");
+                    speak("تم اختراق النظام بنجاح!", () => {
+                        showFinalModal("عبقري التشفير!", "نجحت في إدخال الرقم السري واختراق النظام!");
                         isProcessingAction = false;
                     });
                 } else {
@@ -1014,29 +961,11 @@
                     }
                 });
             } else if (currentGame === 'proverbs') {
-                const resetBtn = document.getElementById('reset-words-btn');
-                if (resetBtn) {
-                    const rRect = resetBtn.getBoundingClientRect();
-                    if (x >= rRect.left && x <= rRect.right && y >= rRect.top && y <= rRect.bottom) {
-                        if (currentHoveredElement !== resetBtn) {
-                            clearHover();
-                            currentHoveredElement = resetBtn;
-                            resetBtn.classList.add('hovered');
-                            handPointer.classList.add('loading');
-
-                            hoverTimer = setTimeout(() => {
-                                resetProverbSelection();
-                            }, HOVER_DELAY);
-                        }
-                        return;
-                    }
-                }
-
-                const wordBtns = document.querySelectorAll('.word-btn:not(.disabled)');
+                const wordBtns = document.querySelectorAll('.word-btn');
                 wordBtns.forEach(btn => {
                     const rect = btn.getBoundingClientRect();
                     if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
-                        if (currentHoveredElement !== btn) {
+                        if (currentHoveredElement !== btn && !btn.classList.contains('selected')) {
                             clearHover();
                             currentHoveredElement = btn;
                             btn.classList.add('hovered');
@@ -1045,6 +974,7 @@
                             hoverTimer = setTimeout(() => {
                                 const idx = parseInt(btn.getAttribute('data-word-idx'));
                                 handleWordClick(idx);
+                                clearHover();
                             }, HOVER_DELAY);
                         }
                     }
@@ -1111,6 +1041,7 @@
             gameStage.style.display = 'none';
             visitorCanvas.style.display = 'none';
 
+            // إظهار الروبوت مجدداً في القائمة الرئيسية
             robotContainer.style.opacity = '1';
 
             menuZones.classList.remove('show');
