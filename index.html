@@ -73,7 +73,6 @@
             transition: all 0.3s ease; font-size: 16px; font-weight: bold; color: #fff;
         }
 
-        /* زر ملء الشاشة مصغر فقط أيقونة */
         .fullscreen-icon-btn {
             width: 45px; height: 45px; border-radius: 50%;
             padding: 0; justify-content: center; font-size: 18px;
@@ -179,7 +178,6 @@
         .option-btn.wrong { background: var(--red) !important; border-color: #fff !important; }
         .option-btn.disabled { opacity: 0.4; pointer-events: none; }
 
-        /* تنسيقات فروع الأسئلة والأمثال */
         .branches-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 850px; width: 100%; }
         .branch-card {
             background: rgba(255,255,255,0.06); border: 2px solid var(--cyan); border-radius: 20px;
@@ -230,7 +228,6 @@
         }
         .xo-cell:hover, .xo-cell.hovered { background: rgba(0, 243, 255, 0.25); border-color: var(--gold); }
 
-        /* تحسينات لعبة فك الرمز الأمني التنافسية والصعبة */
         .code-display {
             font-size: 45px; font-weight: 900; color: var(--gold);
             letter-spacing: 12px; margin: 15px 0; background: rgba(0,0,0,0.6);
@@ -278,7 +275,6 @@
         <div class="top-btn">
             النقاط: <span id="score-display" style="color:var(--green); margin-right:5px;">0</span>
         </div>
-        <!-- تم اختصار زر ملء الشاشة لأيقونة مصغرة فقط -->
         <div class="top-btn fullscreen-icon-btn" onclick="toggleFullScreen()" title="ملء الشاشة">
             <i class="fa-solid fa-expand"></i>
         </div>
@@ -337,14 +333,11 @@
         let hasGreetedVisitor = false;
         let isProcessingAction = false; 
 
-        // وقت التأخير عند التأشير للحد من الاختيار الخاطئ والسريع (3 ثوانٍ)
         const HOVER_DELAY = 3000; 
-
-        // إدارة توقيت ترحيب الروبوت عند الخروج (2 دقيقة)
         let lastExitTime = 0;
-        const ROBOT_WELCOME_COOLDOWN = 120000; // 120 ثانية = 2 دقيقة
+        const ROBOT_WELCOME_COOLDOWN = 120000;
 
-        // الثلاثي الأبعاد ( Three.js )
+        // Three.js
         const robotScene = new THREE.Scene();
         const robotCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         const robotRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
@@ -359,18 +352,16 @@
         let mixer = null;
         const clock = new THREE.Clock();
 
-        robotCamera.position.set(0, 0, 10);
+        // قربنا الكاميرا ليكون الروبوت أكبر في الشاشة
+        robotCamera.position.set(0, 0, 7);
 
         loader.load('./marin.glb', function (gltf) {
             samRobot = gltf.scene;
             
-            // تكبير حجم الروبوت ليكون أكبر بكثير وأكثر وضوحاً
-            samRobot.scale.set(0.65, 0.65, 0.65);
-            
-            // تعديل موضع المظهر ليكون واضحاً وفي المنتصف
-            samRobot.position.set(0, -2.8, 0);
-
-            samRobot.rotation.y = 0;
+            // تكبير المقياس وضبط الدوران لحل مشكلة المقلوب والحجم الصغير
+            samRobot.scale.set(2.5, 2.5, 2.5);
+            samRobot.rotation.set(0, 0, 0); 
+            samRobot.position.set(0, -2.2, 0);
 
             if (gltf.animations && gltf.animations.length > 0) {
                 mixer = new THREE.AnimationMixer(samRobot);
@@ -387,9 +378,9 @@
             const delta = clock.getDelta();
             if (mixer) mixer.update(delta);
             if (samRobot) {
-                samRobot.position.y = -2.8 + Math.sin(Date.now() * 0.0015) * 0.08;
+                samRobot.position.y = -2.2 + Math.sin(Date.now() * 0.0015) * 0.08;
                 const targetRotY = ((lastPointerX / window.innerWidth) - 0.5) * 0.3;
-                samRobot.rotation.y += (targetRotY - samRobot.rotation.y) * 0.05;
+                samRobot.rotation.y = targetRotY;
             }
             robotRenderer.render(robotScene, robotCamera);
         }
@@ -477,7 +468,6 @@
                 handPointer.style.left = `${lastPointerX}px`;
                 handPointer.style.top = `${lastPointerY}px`;
                 
-                // التأكد من مرور دقيقتين للزائر الجديد
                 const now = Date.now();
                 if (!hasGreetedVisitor && currentGame === null && (now - lastExitTime >= ROBOT_WELCOME_COOLDOWN)) {
                     hasGreetedVisitor = true;
@@ -575,7 +565,6 @@
             else if (id === 'code_breaker') startCodeBreakerGame();
         }
 
-        // --- 1. بنك 50 سؤالاً مقسمة على 5 فروع ---
         const questionsBranches = [
             {
                 id: 'science', name: 'العلوم والتكنولوجيا',
@@ -656,7 +645,7 @@
 
         let visitorQuestionCount = 0;
         let selectedBranchIdx = null;
-        let answeredQuestionsMap = {}; // لمتابعة الأسئلة المقفلة لكل فرع
+        let answeredQuestionsMap = {};
 
         function startGeneralQuiz() {
             visitorQuestionCount = 0;
@@ -744,7 +733,6 @@
                 speak("إجابة خاطئة");
             }
 
-            // إغلاق السؤال وتحديث سجل الزائر
             answeredQuestionsMap[selectedBranchIdx].push(qIdx);
             visitorQuestionCount++;
 
@@ -771,7 +759,6 @@
             }, 1000);
         }
 
-        // --- 2. بنك 50 مثل وحكمة ---
         const proverbs50Bank = [
             "ما طار طير وارتفع إلا كما طار وقع", "من طلب العلا سهر الليالي", "إذا كان الكلام من فضة فالسكوت من ذهب",
             "الصديق وقت الضيق", "من جد وجد ومن زرع حصد", "لا تؤجل عمل اليوم إلى الغد",
@@ -852,7 +839,6 @@
             const btn = document.querySelector(`.word-btn[data-word-idx="${idx}"]`);
             if (!btn || btn.classList.contains('disabled')) return;
 
-            // إخفاء وتعطيل الكلمة مباشرة حتى لا تتكرر
             btn.classList.add('disabled');
             currentArrangedWords.push(currentShuffledWords[idx]);
             
@@ -883,7 +869,6 @@
             }
         }
 
-        // --- 3. لعبة الذاكرة ---
         const allMemoryIcons = ['🚀','⚡','🌟','👑','🎯','💎'];
         let memoryCards = [];
         let flippedCards = [];
@@ -929,7 +914,6 @@
             }
         }
 
-        // --- 4. تحدي X - O ---
         let xoBoard = Array(9).fill(null);
 
         function startXOGame() {
@@ -1002,7 +986,6 @@
             return empty[0];
         }
 
-        // --- 5. صيد الجواهر ---
         let catcherInterval = null;
         function startCatcherGame() {
             gameStage.innerHTML = `<div id="catcher-basket">السلة 🧺</div>`;
@@ -1051,14 +1034,12 @@
             }, 1500);
         }
 
-        // --- 6. فك الرمز الأمني المطور والممتع جداً ---
         let secretCode = "";
         let userEnteredCode = "";
         let codeTimerVal = 30;
         let codeTimerInterval = null;
 
         function startCodeBreakerGame() {
-            // رمز سري مكون من 6 أرقام لجعله أكثر صعوبة وتشويقاً
             secretCode = Math.floor(100000 + Math.random() * 900000).toString();
             userEnteredCode = "";
             codeTimerVal = 30;
@@ -1297,13 +1278,12 @@
             if (codeTimerInterval) clearInterval(codeTimerInterval);
             try { bgMusic.pause(); bgMusic.currentTime = 0; } catch(e){}
 
-            // إلغاء أي صيد صوتي مباشر ومنع التحدث الفوري عند العودة
             if ('speechSynthesis' in window) window.speechSynthesis.cancel();
 
             currentGame = null;
             hasGreetedVisitor = false;
             isProcessingAction = false;
-            lastExitTime = Date.now(); // تسجيل وقت الخروج لضمان انتظار دقيقتين قبل الترحيب القادم
+            lastExitTime = Date.now();
 
             resultModal.classList.remove('show');
             gameStage.style.display = 'none';
